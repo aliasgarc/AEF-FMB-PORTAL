@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Payment Tracker</title>
+<link rel="stylesheet" href="/shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  .section { display: none; opacity: 0; transition: opacity 0.3s; }
+  .section.active { display: block; opacity: 1; }
+
+  .upload-instructions {
+    background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.1));
+    border: 1.5px solid rgba(59,130,246,0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--text-light);
+  }
+
+  .upload-instructions strong {
+    color: var(--blue);
+  }
+
+  .upload-instructions code {
+    background: rgba(59,130,246,0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 0 4px;
+    border: 1px solid rgba(59,130,246,0.2);
+  }
+
+  .form-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .form-row > div {
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .form-row button {
+    height: 44px;
+  }
+
+  @media (max-width: 768px) {
+    .form-row {
+      gap: 12px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .form-row {
+      flex-direction: column;
+    }
+    .form-row > div {
+      width: 100%;
+    }
+    .form-row button {
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  .upload-result {
+    padding: 16px;
+    border-radius: 12px;
+    margin-top: 16px;
+    font-weight: 500;
+    animation: slideDown 0.3s ease-out;
+  }
+
+  .upload-result.success {
+    background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,185,129,0.1));
+    color: var(--green);
+    border: 1.5px solid rgba(34,197,94,0.4);
+  }
+
+  .upload-result.error {
+    background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(244,63,94,0.1));
+    color: var(--red);
+    border: 1.5px solid rgba(239,68,68,0.4);
+  }
+
+  /* Detail Panel */
+  #detailPanel {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-header h3 {
+    margin: 0 0 8px 0;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .detail-header button {
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .detail-header {
+      flex-direction: column;
+    }
+    .detail-header button {
+      width: 100%;
+      margin-top: 12px;
+    }
+  }
+
+  /* Search functionality */
+  .search-section {
+    margin-bottom: 24px;
+  }
+
+  .search-box {
+    position: relative;
+  }
+
+  .search-box input {
+    padding-left: 44px;
+  }
+
+  .search-box::before {
+    content: '🔍';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    opacity: 0.6;
+    transition: opacity 0.3s;
+  }
+
+  .search-box:focus-within::before {
+    opacity: 1;
+  }
+
+  /* Stats animations */
+  .stat {
+    animation: slideUp 0.5s ease-out backwards;
+  }
+
+  .stat:nth-child(1) { animation-delay: 0.1s; }
+  .stat:nth-child(2) { animation-delay: 0.2s; }
+  .stat:nth-child(3) { animation-delay: 0.3s; }
+  .stat:nth-child(4) { animation-delay: 0.4s; }
+
+  /* Modern Header */
+  .modern-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px 0;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo {
+    font-size: 40px;
+    background: rgba(255,255,255,0.2);
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    backdrop-filter: blur(10px);
+  }
+
+  .logo-container {
+    position: relative;
+    height: 60px;
+    min-width: 60px;
+  }
+
+  .main-logo {
+    height: 60px;
+    width: auto;
+    max-width: 200px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+  }
+
+  .logo-fallback {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 60px;
+    width: 60px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+  }
+
+  .logo-text {
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+
+  .logo-section h1 {
+    margin: 0;
+    color: white;
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  .logo-section p {
+    margin: 4px 0 0 0;
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    backdrop-filter: blur(10px);
+  }
+
+  .user-details {
+    color: white;
+  }
+
+  .user-name {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .user-role {
+    font-size: 12px;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .btn-logout {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 1.5px solid rgba(255,255,255,0.3);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    backdrop-filter: blur(10px);
+  }
+
+  .btn-logout:hover {
+    background: rgba(255,255,255,0.3);
+    border-color: rgba(255,255,255,0.5);
+    transform: translateY(-2px);
+  }
+
+  /* Dashboard Container */
+  body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 1400px !important;
+    margin: 0 auto;
+    padding: 40px 24px !important;
+  }
+
+  /* Stats Grid - Modern Cards */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .stat {
+    background: white !important;
+    border: none !important;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    min-height: auto !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+  }
+
+  .stat::after {
+    display: none;
+  }
+
+  .stat:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+  }
+
+  .stat-icon {
+    font-size: 32px !important;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #667eea15, #764ba215) !important;
+    padding: 12px !important;
+    width: fit-content;
+  }
+
+  .stat .label {
+    color: #64748b !important;
+    font-size: 12px !important;
+    margin-bottom: 8px;
+  }
+
+  .stat .value {
+    font-size: 32px !important;
+    font-weight: 700;
+    color: #0f172a !important;
+    line-height: 1;
+  }
+
+  .stat .change {
+    font-size: 12px !important;
+    margin-top: 12px;
+    color: #64748b;
+  }
+
+  /* Tabs */
+  .tabs {
+    background: white;
+    border-radius: 16px;
+    padding: 8px;
+    margin-bottom: 32px;
+    display: flex;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .tab {
+    padding: 12px 24px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+
+  .tab:hover {
+    background: #f1f5f9;
+    color: #667eea;
+  }
+
+  .tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+
+  /* Card Styling */
+  .card {
+    background: white !important;
+    border: none !important;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    padding: 32px !important;
+    margin-bottom: 24px;
+    transition: all 0.3s;
+  }
+
+  .card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+
+  .card-title {
+    color: #0f172a !important;
+    font-size: 20px !important;
+    margin-bottom: 12px !important;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-subtitle {
+    color: #94a3b8 !important;
+    font-size: 14px;
+  }
+
+  /* Drop Zone */
+  .drop-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  }
+
+  .drop-zone:hover {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
+    transform: scale(1.01);
+  }
+
+  .drop-zone.drag-over {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+    transform: scale(1.02);
+  }
+
+  .drop-zone p {
+    color: #475569;
+  }
+
+  /* Table Styling */
+  .table-responsive {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  table {
+    background: white;
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  thead {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  }
+
+  th {
+    color: #475569 !important;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    border-bottom: 2px solid #e2e8f0 !important;
+    padding: 18px 16px !important;
+    text-align: left;
+  }
+
+  td {
+    padding: 18px 16px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  tbody tr {
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  tbody tr::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #667eea, #764ba2);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  tbody tr:hover::before {
+    opacity: 1;
+  }
+
+  tbody td {
+    font-size: 14px;
+  }
+
+  tbody td:first-child {
+    font-weight: 700;
+    color: #667eea;
+  }
+
+  tbody td strong {
+    color: #0f172a;
+  }
+
+  /* Amount columns styling */
+  tbody td[style*="text-align: right"] {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
+  }
+
+  /* Color-coded amounts */
+  tbody td[style*="#22c55e"] {
+    background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.04));
+    border-left: 3px solid #22c55e;
+  }
+
+  tbody td[style*="#f59e0b"] {
+    background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.04));
+    border-left: 3px solid #f59e0b;
+  }
+
+  tbody td[style*="#ef4444"] {
+    background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.04));
+    border-left: 3px solid #ef4444;
+  }
+
+  /* Status Badge */
+  .badge {
+    padding: 6px 12px !important;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge.paid {
+    background: #dcfce7 !important;
+    color: #16a34a !important;
+    border: none !important;
+  }
+
+  .badge.partial {
+    background: #fef3c7 !important;
+    color: #d97706 !important;
+    border: none !important;
+  }
+
+  .badge.pending {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border: none !important;
+  }
+
+  /* Upload Instructions */
+  .upload-instructions {
+    background: linear-gradient(135deg, #f0f4ff 0%, #fef3c7 100%);
+    border: 1.5px solid #667eea30;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #475569;
+  }
+
+  .upload-instructions strong {
+    color: #667eea;
+  }
+
+  .upload-instructions code {
+    background: rgba(102, 126, 234, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 0 4px;
+    font-weight: 600;
+  }
+
+  /* Buttons */
+  .form-row button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .form-row button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  }
+
+  .form-row button:active {
+    transform: translateY(0);
+  }
+
+  button.secondary {
+    background: #f1f5f9 !important;
+    color: #667eea !important;
+    border: 1.5px solid #e2e8f0 !important;
+    box-shadow: none;
+  }
+
+  button.secondary:hover {
+    background: #e2e8f0 !important;
+    border-color: #667eea !important;
+    transform: translateY(-1px);
+  }
+
+  /* Search Box */
+  .search-section input {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    color: #0f172a;
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+
+  .search-section input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    background: white;
+  }
+
+  /* Upload Result */
+  .upload-result {
+    padding: 16px;
+    border-radius: 12px;
+    margin-top: 16px;
+    font-weight: 500;
+  }
+
+  .upload-result.success {
+    background: #dcfce7;
+    color: #16a34a;
+    border: 1px solid #86efac;
+  }
+
+  .upload-result.error {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+  }
+
+  @media (max-width: 768px) {
+    .header-content {
+      flex-wrap: wrap;
+    }
+
+    .stats {
+      grid-template-columns: 1fr;
+    }
+
+    .tabs {
+      flex-wrap: wrap;
+    }
+
+    .card {
+      padding: 20px !important;
+    }
+  }
+
+  /* Drop Zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: linear-gradient(135deg, rgba(59,130,246,0.05), rgba(139,92,246,0.05));
+  }
+
+  .drop-zone:hover {
+    border-color: var(--blue);
+    background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1));
+  }
+
+  .drop-zone.drag-over {
+    border-color: var(--blue);
+    background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(139,92,246,0.15));
+    transform: scale(1.02);
+  }
+
+  .drop-zone p {
+    color: var(--text-light);
+  }
+</style>
+</head>
+<body>
+  <!-- Modern Header -->
+  <header class="modern-header">
+    <div class="header-content">
+      <div class="logo-section">
+        <div class="logo-container">
+          <img src="/fmb-logo.png" alt="Faiz Ul Mawaid Il Burhaniyah" class="main-logo" onload="document.querySelectorAll('.logo-fallback')[0].style.display='none'" onerror="this.style.display='none'">
+          <div class="logo-fallback" style="display: block;">
+            <div class="logo-text">FMB</div>
+          </div>
+        </div>
+        <div>
+          <h1>Payment Admin</h1>
+          <p>Dashboard & Management</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="user-info">
+          <div class="avatar">👤</div>
+          <div class="user-details">
+            <div class="user-name" id="whoami">Loading...</div>
+            <div class="user-role">Administrator</div>
+          </div>
+        </div>
+        <button class="btn-logout" id="logoutBtn">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Statistics -->
+    <div class="stats" id="statsRow"></div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="users">👥 Users & Accounts</button>
+      <button class="tab" data-tab="upload">📤 Data Upload</button>
+    </div>
+
+    <!-- Upload Section -->
+    <div id="upload" class="section">
+      <!-- User Data Upload -->
+      <div class="card">
+        <h3 class="card-title">📤 <span>Upload User Data</span></h3>
+        <p class="card-subtitle">Update customer profiles and billing information</p>
+
+        <div class="upload-instructions">
+          <strong>📋 Required Columns:</strong> name, its_id (recommended)<br>
+          <strong>📋 Optional:</strong> sabil_no, hof_its, address, mobile, email, city, pincode, sector, sub_sector, period_label, amount_billed, amount_paid, due_date, status, notes
+        </div>
+
+        <form id="uploadForm" class="form-row">
+          <div style="flex: 1;">
+            <label for="fileInput">📁 Select Excel/CSV File or Drag & Drop</label>
+            <div id="dropZone" class="drop-zone">
+              <div style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 12px;">📄</div>
+                <p style="margin: 0 0 8px 0; font-weight: 600;">Drag & drop your file here</p>
+                <p style="margin: 0; color: var(--text-lighter); font-size: 13px;">or click to browse</p>
+              </div>
+              <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display: none;">
+            </div>
+          </div>
+          <button type="submit" style="align-self: flex-end;">📤 Upload Data</button>
+        </form>
+
+        <div id="uploadResult" style="display:none;"></div>
+      </div>
+
+      <!-- Payment Receipts Upload -->
+      <div class="card">
+        <h3 class="card-title">💳 <span>Upload Payment Receipts</span></h3>
+        <p class="card-subtitle">Track payment transactions received</p>
+
+        <div class="upload-instructions">
+          <strong>📋 Required Columns:</strong> receipt_no, hof_its, hof_name, amt_rcv, payment_mode, received_date, amt_pending<br>
+          <strong>📋 Optional:</strong> payment_refrence, mobile_no
+        </div>
+
+        <form id="uploadPaymentForm" class="form-row">
+          <div style="flex: 1;">
+            <label for="paymentFileInput">📁 Select Excel/CSV File or Drag & Drop</label>
+            <div id="paymentDropZone" class="drop-zone">
+              <div style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 12px;">💳</div>
+                <p style="margin: 0 0 8px 0; font-weight: 600;">Drag & drop payment file here</p>
+                <p style="margin: 0; color: var(--text-lighter); font-size: 13px;">or click to browse</p>
+              </div>
+              <input type="file" id="paymentFileInput" name="file" accept=".xlsx,.xls,.csv" style="display: none;">
+            </div>
+          </div>
+          <button type="submit" style="align-self: flex-end;">💳 Upload Payments</button>
+        </form>
+
+        <div id="paymentUploadResult" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Users Section -->
+    <div id="users" class="section active">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+          <div>
+            <h3 class="card-title" style="margin: 0 0 8px 0;">👥 <span>All Users & Accounts</span></h3>
+            <p class="card-subtitle" id="userCount" style="margin: 0;"></p>
+          </div>
+        </div>
+
+        <div class="search-section search-box">
+          <input type="text" id="userSearch" placeholder="Search by name, ITS ID, or mobile...">
+        </div>
+
+        <div class="table-responsive">
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th>🆔 ITS ID</th>
+                <th>👤 Name</th>
+                <th>📱 Mobile</th>
+                <th>🏢 Sector</th>
+                <th style="text-align: right;">💰 Billed</th>
+                <th style="text-align: right;">✅ Received</th>
+                <th style="text-align: right;">⏳ Pending</th>
+                <th style="text-align: right;">⚠️ Outstanding</th>
+                <th style="width: 100px; text-align: center;">⚙️ Action</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+
+        <p class="muted text-center" id="emptyState" style="display:none; padding: 48px 24px; margin: 0;">
+          📭 <strong>No users yet.</strong><br>Upload an Excel file to get started.
+        </p>
+      </div>
+
+      <!-- User Detail Panel -->
+      <div class="card" id="detailPanel" style="display:none;">
+        <div class="detail-header">
+          <div>
+            <h3 id="detailName"></h3>
+            <p class="muted mb-0" id="detailMeta"></p>
+          </div>
+          <button class="secondary small" id="closeDetail">✕ Close</button>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>📅 Period</th>
+                <th style="text-align: right;">💵 Billed</th>
+                <th style="text-align: right;">✅ Paid</th>
+                <th>📆 Due Date</th>
+                <th>📊 Status</th>
+                <th>📝 Notes</th>
+              </tr>
+            </thead>
+            <tbody id="detailBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    // Tab switching with animation
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+      });
+    });
+
+    // User search functionality
+    const searchInput = document.getElementById('userSearch');
+    let allUsers = [];
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        filterUsers(query);
+      });
+    }
+
+    function filterUsers(query) {
+      const tbody = document.getElementById('usersBody');
+      const rows = tbody.querySelectorAll('tr');
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>

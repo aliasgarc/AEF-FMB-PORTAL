@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Card Showcase — Payment Tracker</title>
+<link rel="stylesheet" href="/shared.css">
+<style>
+  .showcase-wrapper {
+    background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%);
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .showcase-header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  .showcase-header h1 {
+    font-size: 48px;
+    background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 16px 0;
+  }
+
+  .showcase-header p {
+    color: var(--text-lighter);
+    font-size: 18px;
+    margin: 0;
+  }
+
+  .showcase-section {
+    max-width: 1200px;
+    margin: 0 auto 80px;
+  }
+
+  .section-title {
+    color: var(--blue);
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid rgba(59,130,246,0.3);
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 28px;
+    margin-bottom: 60px;
+  }
+
+  @media (max-width: 768px) {
+    .cards-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .cards-grid {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+  }
+
+  /* Feature cards */
+  .feature-card {
+    background: linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(51,65,85,0.7) 100%);
+    border: 1.5px solid rgba(59,130,246,0.2);
+    border-radius: 20px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-8px);
+    border-color: var(--blue);
+    box-shadow: 0 12px 40px rgba(59,130,246,0.3);
+  }
+
+  .feature-card:hover::before {
+    opacity: 1;
+  }
+
+  .card-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+
+  .card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .card-description {
+    font-size: 13px;
+    color: var(--text-lighter);
+    line-height: 1.6;
+  }
+
+  /* Interactive elements demo */
+  .interactive-demo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+    padding: 40px;
+    background: linear-gradient(135deg, rgba(30,41,59,0.8) 0%, rgba(51,65,85,0.6) 100%);
+    border-radius: 24px;
+    border: 1.5px solid rgba(59,130,246,0.2);
+    margin-bottom: 60px;
+  }
+
+  @media (max-width: 1024px) {
+    .interactive-demo {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+  }
+
+  .demo-content h3 {
+    font-size: 24px;
+    color: var(--blue);
+    margin: 0 0 16px 0;
+  }
+
+  .demo-content p {
+    color: var(--text-lighter);
+    line-height: 1.8;
+    margin-bottom: 16px;
+  }
+
+  .demo-features {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-light);
+    font-size: 14px;
+  }
+
+  .feature-item::before {
+    content: '✓';
+    font-weight: 700;
+    color: var(--green);
+    font-size: 16px;
+  }
+
+  .demo-card {
+    perspective: 1000px;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 280px;
+  }
+
+  /* Animation showcase */
+  .animation-showcase {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 768px) {
+    .animation-showcase {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .animation-box {
+    background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(139,92,246,0.15));
+    border: 1px solid rgba(59,130,246,0.3);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  .animation-box:hover {
+    transform: scale(1.05);
+    border-color: var(--blue);
+    box-shadow: 0 8px 20px rgba(59,130,246,0.3);
+  }
+
+  .animation-box h4 {
+    font-size: 14px;
+    color: var(--blue);
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .animation-preview {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59,130,246,0.1);
+    border-radius: 8px;
+    font-size: 32px;
+  }
+
+  .bounce-effect {
+    animation: bounce 1.5s ease-in-out infinite;
+  }
+
+  .pulse-effect {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .glow-effect {
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  @keyframes glow {
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(59,130,246,0.3)); }
+    50% { filter: drop-shadow(0 0 20px rgba(59,130,246,0.8)); }
+  }
+
+  .color-palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  .color-swatch {
+    padding: 24px;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 600;
+    color: white;
+    font-size: 13px;
+  }
+
+  .color-swatch.blue {
+    background: #3b82f6;
+  }
+
+  .color-swatch.purple {
+    background: #8b5cf6;
+  }
+
+  .color-swatch.cyan {
+    background: #06b6d4;
+  }
+
+  .color-swatch.green {
+    background: #22c55e;
+  }
+
+  .color-swatch.red {
+    background: #ef4444;
+  }
+
+  .color-swatch.amber {
+    background: #f59e0b;
+  }
+</style>
+</head>
+<body>
+  <div class="showcase-wrapper">
+    <div class="showcase-header">
+      <h1>Interactive Card Showcase</h1>
+      <p>Explore all the interactive UI components and card designs</p>
+    </div>
+
+    <!-- Statistics Cards Section -->
+    <div class="showcase-section">
+      <div class="section-title">📊 Statistics Cards</div>
+      <div class="cards-grid">
+        <div class="stat">
+          <div class="stat-icon">👥</div>
+          <div class="label">Total Users</div>
+          <div class="value">1,233</div>
+          <div class="change">Active accounts</div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-icon">💰</div>
+          <div class="label">Total Billed</div>
+          <div class="value success">₹25,00,000</div>
+          <div class="change">All time billing</div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-icon">✅</div>
+          <div class="label">Total Paid</div>
+          <div class="value success">₹18,50,000</div>
+          <div class="change" style="color: var(--green);">+74% collected</div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-icon">⚠️</div>
+          <div class="label">Outstanding</div>
+          <div class="value outstanding">₹6,50,000</div>
+          <div class="change negative">Pending collection</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature Cards Section -->
+    <div class="showcase-section">
+      <div class="section-title">✨ Interactive Features</div>
+      <div class="cards-grid">
+        <div class="feature-card">
+          <div class="card-icon">🎬</div>
+          <div class="card-title">Smooth Animations</div>
+          <div class="card-description">8+ animation types with 300ms smooth transitions for professional feel</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🎨</div>
+          <div class="card-title">Gradient Effects</div>
+          <div class="card-description">Rich color gradients across cards, buttons, and text elements</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">✨</div>
+          <div class="card-title">Glassmorphism</div>
+          <div class="card-description">Modern transparent cards with backdrop blur for depth</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🎯</div>
+          <div class="card-title">3D Hover Effects</div>
+          <div class="card-description">Cards lift on hover with enhanced shadows and border glow</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">📱</div>
+          <div class="card-title">Fully Responsive</div>
+          <div class="card-description">Optimized for mobile, tablet, and desktop screens</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">♿</div>
+          <div class="card-title">Accessible Design</div>
+          <div class="card-description">WCAG AAA compliant with focus states and high contrast</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Demo -->
+    <div class="showcase-section">
+      <div class="section-title">🎯 Interactive Demo</div>
+      <div class="interactive-demo">
+        <div class="demo-content">
+          <h3>Hover Over Any Card</h3>
+          <p>Experience the interactive effects built into every card component:</p>
+          <div class="demo-features">
+            <div class="feature-item">Smooth 3D lift animation</div>
+            <div class="feature-item">Enhanced box shadow</div>
+            <div class="feature-item">Glow border effect</div>
+            <div class="feature-item">Radial gradient overlay</div>
+            <div class="feature-item">Top gradient underline</div>
+            <div class="feature-item">Icon scaling animation</div>
+          </div>
+        </div>
+
+        <div class="demo-card">
+          <div class="stat">
+            <div class="stat-icon">🎉</div>
+            <div class="label">Interactive Demo</div>
+            <div class="value">Hover Me!</div>
+            <div class="change">Experience the effects</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animation Showcase -->
+    <div class="showcase-section">
+      <div class="section-title">🎬 Animation Effects</div>
+      <div class="animation-showcase">
+        <div class="animation-box">
+          <h4>Bounce</h4>
+          <div class="animation-preview bounce-effect">📦</div>
+        </div>
+        <div class="animation-box">
+          <h4>Pulse</h4>
+          <div class="animation-preview pulse-effect">💓</div>
+        </div>
+        <div class="animation-box">
+          <h4>Glow</h4>
+          <div class="animation-preview glow-effect">✨</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Color Palette -->
+    <div class="showcase-section">
+      <div class="section-title">🎨 Color Palette</div>
+      <div class="color-palette">
+        <div class="color-swatch blue">Primary Blue</div>
+        <div class="color-swatch purple">Secondary Purple</div>
+        <div class="color-swatch cyan">Accent Cyan</div>
+        <div class="color-swatch green">Success Green</div>
+        <div class="color-swatch red">Error Red</div>
+        <div class="color-swatch amber">Warning Amber</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
