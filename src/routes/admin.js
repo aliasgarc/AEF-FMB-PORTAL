@@ -103,7 +103,7 @@ router.get('/users', requireAdmin, async (req, res) => {
         COALESCE(SUM(pt.amt_pending), 0)::numeric(12,2) AS amount_pending
       FROM fmb_its_tbl u
       LEFT JOIN payment_records p ON p.user_id = u.id
-      LEFT JOIN fmb_payment_tbl pt ON CAST(pt.hof_its AS VARCHAR) = u.its_id
+      LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = CAST(u.its_id AS INTEGER)
       GROUP BY u.id
       ORDER BY outstanding DESC, u.name ASC
     `);
@@ -127,9 +127,9 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
       [req.params.id]
     );
 
-    // Fetch payment receipts using its_id for correct join
+    // Fetch payment receipts (hof_its stores numeric ITS ID)
     const paymentsResult = await db.query(
-      'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no FROM fmb_payment_tbl WHERE CAST(hof_its AS VARCHAR) = $1 ORDER BY received_date DESC',
+      'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no FROM fmb_payment_tbl WHERE hof_its = CAST($1 AS INTEGER) ORDER BY received_date DESC',
       [userResult.rows[0].its_id]
     );
 
@@ -324,7 +324,7 @@ router.get('/payments', requireAdmin, async (req, res) => {
         p.received_date, p.amt_pending, p.payment_refrence, p.mobile_no, p.created_at,
         u.its_id, u.sabil_no
       FROM fmb_payment_tbl p
-      LEFT JOIN fmb_its_tbl u ON CAST(p.hof_its AS VARCHAR) = u.its_id
+      LEFT JOIN fmb_its_tbl u ON p.hof_its = CAST(u.its_id AS INTEGER)
       ORDER BY p.created_at DESC
       LIMIT 1000
     `);
@@ -341,7 +341,7 @@ router.get('/payments', requireAdmin, async (req, res) => {
 router.get('/payments/:hofIts', requireAdmin, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT * FROM fmb_payment_tbl WHERE CAST(hof_its AS VARCHAR) = $1 ORDER BY created_at DESC`,
+      `SELECT * FROM fmb_payment_tbl WHERE hof_its = CAST($1 AS INTEGER) ORDER BY created_at DESC`,
       [req.params.hofIts]
     );
     res.json({ payments: result.rows });
