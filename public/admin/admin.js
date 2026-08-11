@@ -60,25 +60,70 @@ if (usersBody) {
   init();
 }
 
+// Sorting state
+let currentSortColumn = 'outstanding';
+let sortDirection = 'desc';
+let allUsers = [];
+
+// Helper function for fetch with timeout
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
+    throw error;
+  }
+}
+
 async function init() {
-  const meRes = await fetch('/api/admin/me');
-  if (!meRes.ok) {
-    window.location.href = '/admin/login.html';
+  try {
+    const meRes = await fetchWithTimeout('/api/admin/me');
+    if (!meRes.ok) {
+      window.location.href = '/admin/login.html';
+      return;
+    }
+    const me = await meRes.json();
+    const whoamiEl = document.getElementById('whoami');
+    if (whoamiEl) {
+      whoamiEl.textContent = me.admin.username;
+    }
+  } catch (err) {
+    console.error('Init error:', err);
+    const errorMsg = document.createElement('div');
+    errorMsg.className = 'error-box';
+    errorMsg.textContent = 'Failed to load admin session: ' + err.message;
+    document.body.insertBefore(errorMsg, document.body.firstChild);
+    setTimeout(() => window.location.href = '/admin/login.html', 3000);
     return;
   }
-  const me = await meRes.json();
-  document.getElementById('whoami').textContent = me.admin.username;
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     await fetch('/api/admin/logout', { method: 'POST' });
     window.location.href = '/admin/login.html';
   });
 
-  document.getElementById('uploadForm').addEventListener('submit', handleUpload);
+  const uploadForm = document.getElementById('uploadForm');
+  if (uploadForm) {
+    uploadForm.addEventListener('submit', handleUpload);
+    console.log('✓ Upload form listener attached');
+  } else {
+    console.error('❌ uploadForm element not found');
+  }
 
   const paymentForm = document.getElementById('uploadPaymentForm');
   if (paymentForm) {
     paymentForm.addEventListener('submit', handlePaymentUpload);
+    console.log('✓ Payment form listener attached');
+  } else {
+    console.warn('⚠️ uploadPaymentForm element not found');
   }
 
   document.getElementById('closeDetail').addEventListener('click', () => {
@@ -93,19 +138,31 @@ function currency(n) {
 }
 
 async function loadUsers() {
-  // Fetch both user list and stats
-  const usersRes = await fetch('/api/admin/users');
-  const statsRes = await fetch('/api/admin/stats');
+  try {
+    // Fetch both user list and stats with timeout
+    const usersRes = await fetchWithTimeout('/api/admin/users');
+    const statsRes = await fetchWithTimeout('/api/admin/stats');
 
-  if (!usersRes.ok || !statsRes.ok) return;
+    if (!usersRes.ok) {
+      throw new Error('Failed to fetch users: ' + (await usersRes.text()));
+    }
+    if (!statsRes.ok) {
+      throw new Error('Failed to fetch statistics');
+    }
 
-  const usersData = await usersRes.json();
-  const statsData = await statsRes.json();
+    const usersData = await usersRes.json();
+    const statsData = await statsRes.json();
 
-  const users = usersData.users;
+  let users = usersData.users;
   const stats = statsData;
 
-  // Calculate totals from billing data
+  // Store all users for sorting
+  allUsers = users;
+
+  // Sort users based on current sort settings
+  users = sortUsers(users, currentSortColumn, sortDirection);
+
+  // Calculate totals from Takhmeen contribution data
   const totalOutstanding = users.reduce((s, u) => s + Number(u.outstanding), 0);
   const totalBilled = stats.users.totalBilled;
   const totalPaid = stats.users.totalPaid;
@@ -114,24 +171,34 @@ async function loadUsers() {
   const totalReceived = stats.receipts.totalReceived;
   const totalPending = stats.receipts.totalPending;
 
-  document.getElementById('statsRow').innerHTML = `
+  const statsRowEl = document.getElementById('statsRow');
+  if (!statsRowEl) {
+    console.error('Stats row element not found');
+    return;
+  }
+
+  const safeUsers = stats?.users || {};
+  const safeTotalBilled = Number(safeUsers.totalBilled) || 0;
+  const safeTotalReceived = Number(safeUsers.totalPaid) || 0;
+
+  statsRowEl.innerHTML = `
     <div class="stat">
       <div class="stat-icon">👥</div>
       <div class="label">Total Users</div>
-      <div class="value">${stats.users.totalUsers}</div>
+      <div class="value">${safeUsers.totalUsers || 0}</div>
       <div class="change">Active accounts</div>
     </div>
     <div class="stat">
       <div class="stat-icon">💰</div>
-      <div class="label">Total Billed</div>
-      <div class="value success">₹${currency(totalBilled)}</div>
-      <div class="change">Invoice amount</div>
+      <div class="label">Total Takhmeen</div>
+      <div class="value success">₹${currency(safeTotalBilled)}</div>
+      <div class="change">Contribution amount</div>
     </div>
     <div class="stat">
       <div class="stat-icon">✅</div>
       <div class="label">Amount Received</div>
-      <div class="value success">₹${currency(totalReceived)}</div>
-      <div class="change" style="color: var(--green);">+${totalBilled > 0 ? Math.round((totalReceived/totalBilled)*100) : 0}% collected</div>
+      <div class="value success">₹${currency(safeTotalReceived)}</div>
+      <div class="change" style="color: var(--green);">+${safeTotalBilled > 0 ? Math.round((safeTotalReceived/safeTotalBilled)*100) : 0}% collected</div>
     </div>
     <div class="stat">
       <div class="stat-icon">⚠️</div>
@@ -141,10 +208,77 @@ async function loadUsers() {
     </div>
   `;
 
-  const tbody = document.getElementById('usersBody');
-  tbody.innerHTML = '';
   document.getElementById('emptyState').style.display = users.length === 0 ? 'block' : 'none';
   document.getElementById('userCount').innerHTML = `<strong>${users.length}</strong> total users • Last updated: just now`;
+
+    // Render users and setup sorting
+    renderUsers(users);
+    setupSortHandlers();
+  } catch (err) {
+    console.error('Load users error:', err);
+    const errorEl = document.createElement('div');
+    errorEl.className = 'error-box';
+    errorEl.innerHTML = `<strong>Failed to load data:</strong> ${err.message}<br>
+      <button onclick="location.reload()" class="btn small" style="margin-top: 12px;">🔄 Retry</button>`;
+    document.querySelector('.container')?.insertBefore(errorEl, document.querySelector('.container')?.firstChild);
+  }
+}
+
+function sortUsers(users, column, direction) {
+  return users.sort((a, b) => {
+    let aVal = a[column] || '';
+    let bVal = b[column] || '';
+
+    // Handle numeric values
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return direction === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+
+    // Handle string values
+    aVal = String(aVal).toLowerCase();
+    bVal = String(bVal).toLowerCase();
+
+    if (direction === 'asc') {
+      return aVal.localeCompare(bVal);
+    } else {
+      return bVal.localeCompare(aVal);
+    }
+  });
+}
+
+function setupSortHandlers() {
+  const headers = document.querySelectorAll('th.sortable');
+  headers.forEach(header => {
+    header.addEventListener('click', () => {
+      const column = header.dataset.sort;
+
+      // Toggle direction if same column clicked
+      if (currentSortColumn === column) {
+        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortColumn = column;
+        sortDirection = 'desc';
+      }
+
+      // Update visual indicators
+      headers.forEach(h => {
+        h.classList.remove('sort-asc', 'sort-desc');
+      });
+      if (sortDirection === 'asc') {
+        header.classList.add('sort-asc');
+      } else {
+        header.classList.add('sort-desc');
+      }
+
+      // Re-render table with sorted data
+      renderUsers(sortUsers(allUsers, currentSortColumn, sortDirection));
+    });
+  });
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById('usersBody');
+  tbody.innerHTML = '';
 
   users.forEach((u, index) => {
     const tr = document.createElement('tr');
@@ -168,13 +302,8 @@ async function loadUsers() {
       <td style="text-align: right; color: #22c55e; font-weight: 600;">₹${received}</td>
       <td style="text-align: right; color: #f59e0b; font-weight: 600;">₹${pending}</td>
       <td style="text-align: right; color: ${outstandingColor}; font-weight: 700;">₹${outstanding}</td>
-      <td style="text-align: center;"><button class="secondary small viewBtn" data-id="${u.id}">View</button></td>
     `;
     tbody.appendChild(tr);
-  });
-
-  document.querySelectorAll('.viewBtn').forEach((btn) => {
-    btn.addEventListener('click', () => showDetail(btn.dataset.id));
   });
 }
 
@@ -209,7 +338,12 @@ async function showDetail(id) {
 async function handleUpload(e) {
   e.preventDefault();
   const resultEl = document.getElementById('uploadResult');
-  const submitBtn = document.getElementById('uploadForm').querySelector('button');
+  const submitBtn = document.getElementById('uploadForm')?.querySelector('button');
+
+  if (!resultEl) {
+    console.error('uploadResult element not found');
+    return;
+  }
 
   // Check for stored dropped files or regular file input
   const files = droppedFiles['fileInput'] || document.getElementById('fileInput')?.files;
@@ -218,8 +352,11 @@ async function handleUpload(e) {
     resultEl.textContent = '❌ Choose a file first.';
     resultEl.className = 'upload-result error';
     resultEl.style.display = 'block';
+    console.warn('No files selected');
     return;
   }
+
+  console.log('Files selected:', files[0].name);
 
   const formData = new FormData();
   formData.append('file', files[0]);
@@ -227,11 +364,15 @@ async function handleUpload(e) {
   resultEl.textContent = '⏳ Uploading...';
   resultEl.className = 'upload-result';
   resultEl.style.display = 'block';
-  submitBtn.disabled = true;
+  if (submitBtn) submitBtn.disabled = true;
+
+  console.log('Starting upload...');
 
   try {
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+    const res = await fetchWithTimeout('/api/admin/upload', { method: 'POST', body: formData }, 60000);
+    console.log('Upload response status:', res.status);
     const data = await res.json();
+    console.log('Upload response data:', data);
 
     if (!res.ok) {
       resultEl.textContent = '❌ ' + (data.error || 'Upload failed.');
@@ -281,7 +422,7 @@ async function handlePaymentUpload(e) {
   submitBtn.disabled = true;
 
   try {
-    const res = await fetch('/api/admin/upload-payments', { method: 'POST', body: formData });
+    const res = await fetchWithTimeout('/api/admin/upload-payments', { method: 'POST', body: formData }, 60000);
     const data = await res.json();
 
     if (!res.ok) {
@@ -389,5 +530,14 @@ function setupDragDrop(dropZoneId, fileInputId) {
 // Initialize drag-drop when page loads
 if (document.getElementById('dropZone')) {
   setupDragDrop('dropZone', 'fileInput');
+  console.log('✓ User data drop zone initialized');
+} else {
+  console.error('❌ dropZone element not found');
+}
+
+if (document.getElementById('paymentDropZone')) {
   setupDragDrop('paymentDropZone', 'paymentFileInput');
+  console.log('✓ Payment drop zone initialized');
+} else {
+  console.warn('⚠️ paymentDropZone element not found');
 }

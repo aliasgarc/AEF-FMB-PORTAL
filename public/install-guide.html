@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#3c7441">
+  <title>Installation Guide — Payment Tracker</title>
+  <link rel="stylesheet" href="/shared.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e8f3eb 100%);
+    }
+
+    .guide-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .guide-header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 30px;
+      border-bottom: 2px solid #3c7441;
+    }
+
+    .guide-header h1 {
+      color: #3c7441;
+      font-size: 32px;
+      margin: 0 0 12px 0;
+    }
+
+    .guide-header p {
+      color: #666;
+      font-size: 16px;
+      margin: 0;
+    }
+
+    .platforms {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .platform-card {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 24px;
+      border-top: 3px solid #3c7441;
+      box-shadow: 0 2px 8px rgba(60,116,65,0.08);
+      transition: all 0.3s ease;
+    }
+
+    .platform-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(60,116,65,0.12);
+    }
+
+    .platform-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+
+    .platform-card h2 {
+      color: #1a1a1a;
+      font-size: 20px;
+      margin: 0 0 16px 0;
+    }
+
+    .steps {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .steps li {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 12px;
+      padding-left: 28px;
+      position: relative;
+      line-height: 1.5;
+    }
+
+    .steps li:before {
+      content: counter(step-counter);
+      counter-increment: step-counter;
+      position: absolute;
+      left: 0;
+      background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%);
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .platform-card {
+      counter-reset: step-counter;
+    }
+
+    .features {
+      background: linear-gradient(135deg, rgba(60,116,65,0.08), rgba(90,155,98,0.05));
+      border: 1px solid rgba(60,116,65,0.15);
+      border-radius: 12px;
+      padding: 28px 24px;
+      margin-bottom: 40px;
+    }
+
+    .features h3 {
+      color: #3c7441;
+      font-size: 18px;
+      margin: 0 0 16px 0;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .troubleshooting {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 24px;
+      border-left: 4px solid #d97706;
+    }
+
+    .troubleshooting h3 {
+      color: #d97706;
+      font-size: 18px;
+      margin: 0 0 16px 0;
+    }
+
+    .faq-item {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .faq-item:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .faq-question {
+      color: #3c7441;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .faq-answer {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 12px 28px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(60,116,65,0.25);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #1a1a1a;
+    }
+
+    .btn-secondary:hover {
+      background: #e8e8e8;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      color: #999;
+      font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+      .guide-container {
+        padding: 20px 16px;
+      }
+
+      .guide-header h1 {
+        font-size: 24px;
+      }
+
+      .platforms {
+        grid-template-columns: 1fr;
+      }
+
+      .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="guide-container">
+    <!-- Header -->
+    <div class="guide-header">
+      <h1>📱 Install Payment Tracker</h1>
+      <p>Quick guide to download and use the app on your device</p>
+    </div>
+
+    <!-- Platform Cards -->
+    <div class="platforms">
+      <!-- Android -->
+      <div class="platform-card">
+        <div class="platform-icon">🤖</div>
+        <h2>Android Phone</h2>
+        <ol class="steps">
+          <li>Open Chrome, Edge, or Brave</li>
+          <li>Visit the app URL provided</li>
+          <li>Wait for install banner</li>
+          <li>Tap "📱 Install App"</li>
+          <li>Confirm the dialog</li>
+          <li>App appears on home screen!</li>
+        </ol>
+      </div>
+
+      <!-- iPhone -->
+      <div class="platform-card">
+        <div class="platform-icon">🍎</div>
+        <h2>iPhone / iPad</h2>
+        <ol class="steps">
+          <li>Open Safari browser</li>
+          <li>Visit the app URL</li>
+          <li>Tap Share button (↑)</li>
+          <li>Select "Add to Home Screen"</li>
+          <li>Choose app name</li>
+          <li>Tap "Add"</li>
+        </ol>
+      </div>
+
+      <!-- Desktop -->
+      <div class="platform-card">
+        <div class="platform-icon">💻</div>
+        <h2>Desktop / Laptop</h2>
+        <ol class="steps">
+          <li>Open Chrome, Edge, or Brave</li>
+          <li>Visit the app URL</li>
+          <li>Look for install icon</li>
+          <li>Click "Install" prompt</li>
+          <li>Confirm the dialog</li>
+          <li>App launches standalone</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="features">
+      <h3>✨ App Features</h3>
+      <div class="feature-grid">
+        <div class="feature-item">✅ Works Offline</div>
+        <div class="feature-item">✅ Fast Loading</div>
+        <div class="feature-item">✅ Auto Updates</div>
+        <div class="feature-item">✅ Secure</div>
+        <div class="feature-item">✅ No Install Fee</div>
+        <div class="feature-item">✅ Small Size</div>
+      </div>
+    </div>
+
+    <!-- Quick Tips -->
+    <div class="troubleshooting">
+      <h3>❓ Quick Tips</h3>
+      <div class="faq-item">
+        <div class="faq-question">Q: Will it work without internet?</div>
+        <div class="faq-answer">A: Yes! After first visit, you can use it offline. Open once on WiFi, then use anytime.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">Q: Is it safe?</div>
+        <div class="faq-answer">A: Absolutely! All data is encrypted and validated by the server. Your phone keeps your data secure.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">Q: Can I remove the app?</div>
+        <div class="faq-answer">A: Yes, long-press the icon on home screen and select "Remove" or "Uninstall".</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">Q: What if install button doesn't show?</div>
+        <div class="faq-answer">A: Try clearing browser cache or use a different browser. iOS users: use Share menu instead.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">Q: Will I get automatic updates?</div>
+        <div class="faq-answer">A: Yes! Updates happen automatically. You'll see a notification when new version is ready.</div>
+      </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="goToApp()">🚀 Go to App</button>
+      <a href="#" class="btn btn-secondary" onclick="downloadGuide(); return false;">📥 Download Guide</a>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>Payment Tracker v1.0 • Made with ❤️ by Cyphron Tech LLP</p>
+      <p>For support, contact: ali@testrig.co.in</p>
+    </div>
+  </div>
+
+  <script>
+    function goToApp() {
+      // Detect which app user should access based on browser context
+      const path = window.location.pathname;
+      if (path.includes('/admin/')) {
+        window.location.href = '/admin/dashboard.html';
+      } else {
+        window.location.href = '/user/';
+      }
+    }
+
+    function downloadGuide() {
+      // Create a simple text file with the guide
+      const text = `PAYMENT TRACKER - QUICK INSTALLATION GUIDE
+
+📱 ANDROID PHONE:
+1. Open Chrome, Edge, or Brave
+2. Visit: http://your-server/user (or /admin)
+3. Wait for "📱 Install App" banner
+4. Tap "Install"
+5. Done! App on home screen
+
+🍎 IPHONE / IPAD:
+1. Open Safari
+2. Visit the app URL
+3. Tap Share (↑ button)
+4. Select "Add to Home Screen"
+5. Tap "Add"
+6. Done!
+
+💻 DESKTOP:
+1. Open Chrome, Edge, or Brave
+2. Visit the app URL
+3. Click install icon in address bar
+4. Confirm dialog
+5. App launches full-screen
+
+KEY FEATURES:
+✅ Works offline
+✅ Fast loading
+✅ Auto updates
+✅ Secure & encrypted
+✅ Free (no ads)
+✅ Lightweight (<50MB)
+
+OFFLINE USE:
+- Open app once online to cache data
+- Works offline after that
+- Data syncs when reconnected
+
+SUPPORT:
+Email: ali@testrig.co.in
+
+Made with ❤️ by Cyphron Tech LLP`;
+
+      const element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+      element.setAttribute('download', 'Payment-Tracker-Installation-Guide.txt');
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    }
+  </script>
+</body>
+</html>

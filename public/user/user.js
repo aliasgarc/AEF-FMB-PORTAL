@@ -13,7 +13,26 @@ function escapeHtml(str) {
   }[c]));
 }
 
+// Helper function for fetch with timeout
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
+    throw error;
+  }
+}
+
 function showError(message) {
+  if (!lookupError) return;
   lookupError.textContent = message;
   lookupError.className = 'error';
   lookupError.style.display = 'block';
@@ -42,7 +61,7 @@ lookupForm.addEventListener('submit', async (e) => {
   submitBtn.innerHTML = '<span class="loading-spinner"></span> Checking...';
 
   try {
-    const res = await fetch(`/api/user/${encodeURIComponent(uniqueNumber)}`);
+    const res = await fetchWithTimeout(`/api/user/${encodeURIComponent(uniqueNumber)}`);
     const data = await res.json();
 
     if (!res.ok) {
@@ -52,7 +71,7 @@ lookupForm.addEventListener('submit', async (e) => {
 
     renderResult(data);
   } catch (err) {
-    showError('❌ Network error. Please check your connection and try again.');
+    showError('❌ ' + (err.message || 'Network error. Please check your connection and try again.'));
   } finally {
     submitBtn.disabled = false;
     submitBtn.innerHTML = originalText;
@@ -73,10 +92,20 @@ document.getElementById('uniqueNumber').addEventListener('keyup', (e) => {
 });
 
 function renderResult(data) {
-  const { user, history, payments, summary } = data;
+  if (!data || !data.user) {
+    showError('❌ Invalid data received. Please try again.');
+    return;
+  }
+
+  const { user, takhmeen = [], payments = [], summary = {} } = data;
 
   // Populate user info
-  document.getElementById('resName').textContent = user.name;
+  const resNameEl = document.getElementById('resName');
+  if (!resNameEl) {
+    showError('❌ Error loading page. Please refresh.');
+    return;
+  }
+  resNameEl.textContent = user?.name || 'Unknown User';
 
   const metaParts = [];
   if (user.its_id) metaParts.push(`ITS ID: ${escapeHtml(user.its_id)}`);
@@ -85,13 +114,26 @@ function renderResult(data) {
 
   document.getElementById('resMeta').textContent = metaParts.join(' • ') || 'Account information';
 
-  // Update statistics with actual payment received data
-  // Show total received and pending from payment receipts
+  // Update statistics with Takhmeen and payment data
+  // Show Takhmeen total, received and pending from payment receipts
+  const totalBilled = summary.totalBilled || 0;
   const totalReceived = summary.totalReceived || 0;
   const totalPending = summary.totalPending || 0;
 
-  document.getElementById('statReceived').textContent = currency(totalReceived);
-  document.getElementById('statPending').textContent = currency(totalPending);
+  // Populate stats with null checks
+  const statTakhmeen = document.getElementById('statTakhmeen');
+  const statReceived = document.getElementById('statReceived');
+  const statPending = document.getElementById('statPending');
+
+  if (statTakhmeen) statTakhmeen.textContent = currency(totalBilled);
+  if (statReceived) statReceived.textContent = currency(totalReceived);
+  if (statPending) statPending.textContent = currency(totalPending);
+
+  // Hide skeleton and show actual stats
+  const statsContainer = document.getElementById('statsContainer');
+  const statsRow = document.getElementById('statsRow');
+  if (statsContainer) statsContainer.style.display = 'none';
+  if (statsRow) statsRow.style.display = 'grid';
 
   // Create progress bar for pending amounts
   const statPendingDiv = document.querySelector('.stat:nth-child(2)');
