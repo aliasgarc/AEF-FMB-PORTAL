@@ -816,49 +816,17 @@
       <!-- Statistics Cards -->
       <div class="stats">
         <div class="stat">
-          <div class="stat-icon">💰</div>
-          <div class="label">Total Billed</div>
-          <div class="value">₹<span id="statBilled"></span></div>
-          <div class="change">All time billing</div>
-        </div>
-        <div class="stat">
           <div class="stat-icon">✅</div>
-          <div class="label">Total Paid</div>
-          <div class="value success">₹<span id="statPaid"></span></div>
-          <div class="change" style="color: var(--green);">✓ Amount settled</div>
+          <div class="label">Amount Received</div>
+          <div class="value success">₹<span id="statReceived"></span></div>
+          <div class="change" style="color: var(--green);">Amount received from you</div>
         </div>
         <div class="stat">
-          <div class="stat-icon">⚠️</div>
-          <div class="label">Outstanding Dues</div>
-          <div class="value outstanding">₹<span id="statOutstanding"></span></div>
-          <div class="change negative">Pending payment</div>
+          <div class="stat-icon">⏳</div>
+          <div class="label">Amount Pending</div>
+          <div class="value outstanding">₹<span id="statPending"></span></div>
+          <div class="change negative">Still to receive</div>
         </div>
-      </div>
-
-      <!-- Billing History Table -->
-      <div class="card">
-        <h3 class="card-title">📋 <span>Billing History</span></h3>
-        <p class="card-subtitle">Record of all billing periods and invoices</p>
-
-        <div class="table-responsive">
-          <table id="historyTable">
-            <thead>
-              <tr>
-                <th>📅 Period</th>
-                <th style="text-align: right;">💵 Billed</th>
-                <th style="text-align: right;">✅ Paid</th>
-                <th>📆 Due Date</th>
-                <th>📊 Status</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody"></tbody>
-          </table>
-        </div>
-
-        <p class="muted" id="emptyHistory" style="display:none;">
-          <strong>📭 No billing history yet</strong>
-          Your billing records will appear here once invoices are issued.
-        </p>
       </div>
 
       <!-- Payment Receipts Table -->

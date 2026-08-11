@@ -85,18 +85,20 @@ function renderResult(data) {
 
   document.getElementById('resMeta').textContent = metaParts.join(' • ') || 'Account information';
 
-  // Update statistics with animations
-  // Use totalBilled and totalPaid from payment_records as source of truth
-  const outstanding = summary.totalBilled - summary.totalPaid;
-  const percentPaid = summary.totalBilled > 0 ? Math.round((summary.totalPaid / summary.totalBilled) * 100) : 0;
+  // Update statistics with actual payment received data
+  // Show total received and pending from payment receipts
+  const totalReceived = summary.totalReceived || 0;
+  const totalPending = summary.totalPending || 0;
 
-  document.getElementById('statBilled').textContent = currency(summary.totalBilled);
-  document.getElementById('statPaid').textContent = currency(summary.totalPaid);
-  document.getElementById('statOutstanding').textContent = currency(outstanding);
+  document.getElementById('statReceived').textContent = currency(totalReceived);
+  document.getElementById('statPending').textContent = currency(totalPending);
 
-  // Create progress bar based on payment_records data (billing paid vs billed)
-  const statOutstandingDiv = document.querySelector('.stat:nth-child(3)');
-  if (statOutstandingDiv) {
+  // Create progress bar for pending amounts
+  const statPendingDiv = document.querySelector('.stat:nth-child(2)');
+  if (statPendingDiv) {
+    const totalContribution = totalReceived + totalPending;
+    const percentReceived = totalContribution > 0 ? Math.round((totalReceived / totalContribution) * 100) : 0;
+
     const progressBar = document.createElement('div');
     progressBar.style.marginTop = '12px';
     progressBar.style.height = '6px';
@@ -106,57 +108,26 @@ function renderResult(data) {
 
     const progressFill = document.createElement('div');
     progressFill.style.height = '100%';
-    progressFill.style.width = percentPaid + '%';
+    progressFill.style.width = percentReceived + '%';
     progressFill.style.background = 'linear-gradient(90deg, var(--green), var(--cyan))';
     progressFill.style.borderRadius = '3px';
     progressFill.style.transition = 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
 
     progressBar.appendChild(progressFill);
 
-    const oldBar = statOutstandingDiv.querySelector('[data-progress]');
+    const oldBar = statPendingDiv.querySelector('[data-progress]');
     if (oldBar) oldBar.remove();
 
     progressBar.setAttribute('data-progress', 'true');
-    statOutstandingDiv.appendChild(progressBar);
+    statPendingDiv.appendChild(progressBar);
 
     // Add percentage label
     const percentLabel = document.createElement('p');
     percentLabel.style.margin = '8px 0 0 0';
     percentLabel.style.fontSize = '12px';
     percentLabel.style.color = '#64748b';
-    percentLabel.textContent = `${percentPaid}% of billing paid`;
-    statOutstandingDiv.appendChild(percentLabel);
-  }
-
-  // Populate billing history table
-  const historyBody = document.getElementById('historyBody');
-  const emptyHistory = document.getElementById('emptyHistory');
-
-  if (historyBody && emptyHistory) {
-    historyBody.innerHTML = '';
-
-    if (history.length === 0) {
-      emptyHistory.style.display = 'block';
-    } else {
-      emptyHistory.style.display = 'none';
-      history.forEach((r, index) => {
-        const tr = document.createElement('tr');
-        const statusClass = r.status || 'pending';
-        const dueDate = r.due_date ? new Date(r.due_date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
-
-        tr.style.animation = `slideUp 0.4s ease-out ${index * 0.05}s backwards`;
-        tr.innerHTML = `
-          <td><strong>${escapeHtml(r.period_label || '-')}</strong></td>
-          <td style="text-align: right;">₹${currency(r.amount_billed)}</td>
-          <td style="text-align: right;">₹${currency(r.amount_paid)}</td>
-          <td>${dueDate}</td>
-          <td><span class="status-badge ${statusClass}">
-            ${getStatusIcon(statusClass)} ${escapeHtml(r.status || 'pending')}
-          </span></td>
-        `;
-        historyBody.appendChild(tr);
-      });
-    }
+    percentLabel.textContent = `${percentReceived}% collected`;
+    statPendingDiv.appendChild(percentLabel);
   }
 
   // Populate payment receipts table
