@@ -23,15 +23,16 @@ router.get('/:itsId', async (req, res) => {
       [user.id]
     );
 
-    // Also fetch payment receipts
+    // Fetch payment receipts (actual payments received)
     const paymentsResult = await db.query(
-      'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date FROM fmb_payment_tbl WHERE hof_its = $1 ORDER BY received_date DESC',
+      'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no FROM fmb_payment_tbl WHERE hof_its = $1 ORDER BY received_date DESC',
       [user.id]
     );
 
     const history = historyResult.rows;
     const payments = paymentsResult.rows;
 
+    // Calculate totals from payment_records (source of truth for billing)
     const totalBilled = history.reduce((sum, r) => sum + Number(r.amount_billed), 0);
     const totalPaid = history.reduce((sum, r) => sum + Number(r.amount_paid), 0);
 

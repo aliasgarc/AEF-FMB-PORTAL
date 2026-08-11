@@ -73,7 +73,7 @@ document.getElementById('uniqueNumber').addEventListener('keyup', (e) => {
 });
 
 function renderResult(data) {
-  const { user, history, summary } = data;
+  const { user, history, payments, summary } = data;
 
   // Populate user info
   document.getElementById('resName').textContent = user.name;
@@ -86,14 +86,15 @@ function renderResult(data) {
   document.getElementById('resMeta').textContent = metaParts.join(' • ') || 'Account information';
 
   // Update statistics with animations
-  const outstanding = summary.totalBilled - summary.totalReceived;
-  const percentPaid = summary.totalBilled > 0 ? Math.round((summary.totalReceived / summary.totalBilled) * 100) : 0;
+  // Use totalBilled and totalPaid from payment_records as source of truth
+  const outstanding = summary.totalBilled - summary.totalPaid;
+  const percentPaid = summary.totalBilled > 0 ? Math.round((summary.totalPaid / summary.totalBilled) * 100) : 0;
 
   document.getElementById('statBilled').textContent = currency(summary.totalBilled);
-  document.getElementById('statPaid').textContent = currency(summary.totalReceived);
+  document.getElementById('statPaid').textContent = currency(summary.totalPaid);
   document.getElementById('statOutstanding').textContent = currency(outstanding);
 
-  // Create progress bar
+  // Create progress bar based on payment_records data (billing paid vs billed)
   const statOutstandingDiv = document.querySelector('.stat:nth-child(3)');
   if (statOutstandingDiv) {
     const progressBar = document.createElement('div');
@@ -117,11 +118,19 @@ function renderResult(data) {
 
     progressBar.setAttribute('data-progress', 'true');
     statOutstandingDiv.appendChild(progressBar);
+
+    // Add percentage label
+    const percentLabel = document.createElement('p');
+    percentLabel.style.margin = '8px 0 0 0';
+    percentLabel.style.fontSize = '12px';
+    percentLabel.style.color = '#64748b';
+    percentLabel.textContent = `${percentPaid}% of billing paid`;
+    statOutstandingDiv.appendChild(percentLabel);
   }
 
-  // Populate history table
-  const tbody = document.getElementById('historyBody');
-  tbody.innerHTML = '';
+  // Populate billing history table
+  const historyBody = document.getElementById('historyBody');
+  historyBody.innerHTML = '';
 
   if (history.length === 0) {
     document.getElementById('emptyHistory').style.display = 'block';
@@ -142,7 +151,32 @@ function renderResult(data) {
           ${getStatusIcon(statusClass)} ${escapeHtml(r.status || 'pending')}
         </span></td>
       `;
-      tbody.appendChild(tr);
+      historyBody.appendChild(tr);
+    });
+  }
+
+  // Populate payment receipts table
+  const receiptsBody = document.getElementById('receiptsBody');
+  receiptsBody.innerHTML = '';
+
+  if (!payments || payments.length === 0) {
+    document.getElementById('emptyReceipts').style.display = 'block';
+  } else {
+    document.getElementById('emptyReceipts').style.display = 'none';
+    payments.forEach((p, index) => {
+      const tr = document.createElement('tr');
+      const receiptDate = p.received_date ? new Date(p.received_date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+
+      tr.style.animation = `slideUp 0.4s ease-out ${index * 0.05}s backwards`;
+      tr.innerHTML = `
+        <td><strong>${escapeHtml(p.receipt_no || '-')}</strong></td>
+        <td>${receiptDate}</td>
+        <td style="text-align: right; color: var(--green); font-weight: 600;">₹${currency(p.amt_rcv || 0)}</td>
+        <td>${escapeHtml(p.payment_mode || '-')}</td>
+        <td style="text-align: right; color: var(--amber); font-weight: 600;">₹${currency(p.amt_pending || 0)}</td>
+        <td>${escapeHtml(p.payment_refrence || '-')}</td>
+      `;
+      receiptsBody.appendChild(tr);
     });
   }
 

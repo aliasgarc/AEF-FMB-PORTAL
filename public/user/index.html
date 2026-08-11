@@ -835,10 +835,10 @@
         </div>
       </div>
 
-      <!-- Payment History Table -->
+      <!-- Billing History Table -->
       <div class="card">
-        <h3 class="card-title">📋 <span>Payment History</span></h3>
-        <p class="card-subtitle">Complete record of all transactions</p>
+        <h3 class="card-title">📋 <span>Billing History</span></h3>
+        <p class="card-subtitle">Record of all billing periods and invoices</p>
 
         <div class="table-responsive">
           <table id="historyTable">
@@ -856,8 +856,35 @@
         </div>
 
         <p class="muted" id="emptyHistory" style="display:none;">
-          <strong>📭 No payment history yet</strong>
-          Your transaction history will appear here once payments are recorded.
+          <strong>📭 No billing history yet</strong>
+          Your billing records will appear here once invoices are issued.
+        </p>
+      </div>
+
+      <!-- Payment Receipts Table -->
+      <div class="card">
+        <h3 class="card-title">💳 <span>Payment Receipts</span></h3>
+        <p class="card-subtitle">Record of all payments received by the organization</p>
+
+        <div class="table-responsive">
+          <table id="receiptsTable">
+            <thead>
+              <tr>
+                <th>🧾 Receipt #</th>
+                <th>📅 Date Received</th>
+                <th style="text-align: right;">💰 Amount</th>
+                <th>💳 Payment Mode</th>
+                <th style="text-align: right;">⏳ Pending</th>
+                <th>📝 Reference</th>
+              </tr>
+            </thead>
+            <tbody id="receiptsBody"></tbody>
+          </table>
+        </div>
+
+        <p class="muted" id="emptyReceipts" style="display:none;">
+          <strong>📭 No payment receipts yet</strong>
+          Payment receipts will appear here once payments are recorded.
         </p>
       </div>
 
