@@ -130,54 +130,63 @@ function renderResult(data) {
 
   // Populate billing history table
   const historyBody = document.getElementById('historyBody');
-  historyBody.innerHTML = '';
+  const emptyHistory = document.getElementById('emptyHistory');
 
-  if (history.length === 0) {
-    document.getElementById('emptyHistory').style.display = 'block';
-  } else {
-    document.getElementById('emptyHistory').style.display = 'none';
-    history.forEach((r, index) => {
-      const tr = document.createElement('tr');
-      const statusClass = r.status || 'pending';
-      const dueDate = r.due_date ? new Date(r.due_date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+  if (historyBody && emptyHistory) {
+    historyBody.innerHTML = '';
 
-      tr.style.animation = `slideUp 0.4s ease-out ${index * 0.05}s backwards`;
-      tr.innerHTML = `
-        <td><strong>${escapeHtml(r.period_label || '-')}</strong></td>
-        <td style="text-align: right;">₹${currency(r.amount_billed)}</td>
-        <td style="text-align: right;">₹${currency(r.amount_paid)}</td>
-        <td>${dueDate}</td>
-        <td><span class="status-badge ${statusClass}">
-          ${getStatusIcon(statusClass)} ${escapeHtml(r.status || 'pending')}
-        </span></td>
-      `;
-      historyBody.appendChild(tr);
-    });
+    if (history.length === 0) {
+      emptyHistory.style.display = 'block';
+    } else {
+      emptyHistory.style.display = 'none';
+      history.forEach((r, index) => {
+        const tr = document.createElement('tr');
+        const statusClass = r.status || 'pending';
+        const dueDate = r.due_date ? new Date(r.due_date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+
+        tr.style.animation = `slideUp 0.4s ease-out ${index * 0.05}s backwards`;
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(r.period_label || '-')}</strong></td>
+          <td style="text-align: right;">₹${currency(r.amount_billed)}</td>
+          <td style="text-align: right;">₹${currency(r.amount_paid)}</td>
+          <td>${dueDate}</td>
+          <td><span class="status-badge ${statusClass}">
+            ${getStatusIcon(statusClass)} ${escapeHtml(r.status || 'pending')}
+          </span></td>
+        `;
+        historyBody.appendChild(tr);
+      });
+    }
   }
 
   // Populate payment receipts table
   const receiptsBody = document.getElementById('receiptsBody');
-  receiptsBody.innerHTML = '';
+  const emptyReceipts = document.getElementById('emptyReceipts');
 
-  if (!payments || payments.length === 0) {
-    document.getElementById('emptyReceipts').style.display = 'block';
-  } else {
-    document.getElementById('emptyReceipts').style.display = 'none';
-    payments.forEach((p, index) => {
-      const tr = document.createElement('tr');
-      const receiptDate = p.received_date ? new Date(p.received_date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+  // Safety check: only proceed if elements exist
+  if (receiptsBody && emptyReceipts) {
+    receiptsBody.innerHTML = '';
 
-      tr.style.animation = `slideUp 0.4s ease-out ${index * 0.05}s backwards`;
-      tr.innerHTML = `
-        <td><strong>${escapeHtml(p.receipt_no || '-')}</strong></td>
-        <td>${receiptDate}</td>
-        <td style="text-align: right; color: var(--green); font-weight: 600;">₹${currency(p.amt_rcv || 0)}</td>
-        <td>${escapeHtml(p.payment_mode || '-')}</td>
-        <td style="text-align: right; color: var(--amber); font-weight: 600;">₹${currency(p.amt_pending || 0)}</td>
-        <td>${escapeHtml(p.payment_refrence || '-')}</td>
-      `;
-      receiptsBody.appendChild(tr);
-    });
+    if (!payments || payments.length === 0) {
+      emptyReceipts.style.display = 'block';
+    } else {
+      emptyReceipts.style.display = 'none';
+      payments.forEach((p, index) => {
+        const tr = document.createElement('tr');
+        const receiptDate = p.received_date ? new Date(p.received_date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+
+        tr.style.animation = `slideUp 0.4s ease-out ${index * 0.05}s backwards`;
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(p.receipt_no || '-')}</strong></td>
+          <td>${receiptDate}</td>
+          <td style="text-align: right; color: var(--green); font-weight: 600;">₹${currency(p.amt_rcv || 0)}</td>
+          <td>${escapeHtml(p.payment_mode || '-')}</td>
+          <td style="text-align: right; color: var(--amber); font-weight: 600;">₹${currency(p.amt_pending || 0)}</td>
+          <td>${escapeHtml(p.payment_refrence || '-')}</td>
+        `;
+        receiptsBody.appendChild(tr);
+      });
+    }
   }
 
   // Show results with smooth animation
