@@ -297,11 +297,23 @@ router.post('/upload-payments', requireAdmin, upload.single('file'), async (req,
     }
 
     await client.query('COMMIT');
+
+    const successStatus = paymentsInserted > 0 ? 'ok' : (paymentsDuplicate > 0 ? 'partial' : 'error');
+
     res.json({
       ok: true,
+      status: successStatus,
       paymentsInserted,
       paymentsDuplicate,
-      summary: { totalReceived: totalReceived.toFixed(2), recordsProcessed: rows.length, duplicatesSkipped: paymentsDuplicate },
+      summary: {
+        recordsProcessed: rows.length,
+        newRecordsInserted: paymentsInserted,
+        duplicatesSkipped: paymentsDuplicate,
+        totalReceived: totalReceived.toFixed(2),
+        message: paymentsInserted > 0
+          ? `Successfully added ${paymentsInserted} payment record(s)${paymentsDuplicate > 0 ? ` and skipped ${paymentsDuplicate} duplicate(s)` : ''}`
+          : (paymentsDuplicate > 0 ? `All ${paymentsDuplicate} record(s) were duplicates - no new payments added` : 'No valid payments to process')
+      },
       warnings: errors
     });
   } catch (err) {

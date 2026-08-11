@@ -290,16 +290,19 @@ async function handlePaymentUpload(e) {
       return;
     }
 
-    // Build result message
-    let resultMessage = `✅ Success: ${data.paymentsInserted} payment records added<br>💰 Total Received: ₹${data.summary.totalReceived}`;
+    // Build result message from API response
+    let resultMessage = `✅ ${data.summary.message}<br>💰 Total Received: ₹${data.summary.totalReceived}`;
 
-    // Add duplicate info if any
-    if (data.paymentsDuplicate > 0) {
-      resultMessage += `<br>⚠️ ${data.paymentsDuplicate} duplicate receipts skipped`;
+    // Add processing summary
+    resultMessage += `<br>📊 Processed: ${data.summary.recordsProcessed} records | Added: ${data.summary.newRecordsInserted} | Duplicates: ${data.summary.duplicatesSkipped}`;
+
+    // Add warnings if any
+    if (data.warnings && data.warnings.length > 0) {
+      resultMessage += `<br>⚠️ ${data.warnings.length} warning(s)`;
     }
 
     resultEl.innerHTML = resultMessage;
-    resultEl.className = 'upload-result success';
+    resultEl.className = data.paymentsInserted > 0 ? 'upload-result success' : (data.paymentsDuplicate > 0 ? 'upload-result warning' : 'upload-result error');
 
     // Clear the stored files and reset the input
     droppedFiles['paymentFileInput'] = null;
