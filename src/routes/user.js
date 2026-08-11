@@ -25,8 +25,8 @@ router.get('/:itsId', async (req, res) => {
 
     // Fetch payment receipts (actual payments received)
     const paymentsResult = await db.query(
-      'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no FROM fmb_payment_tbl WHERE hof_its = $1 ORDER BY received_date DESC',
-      [user.id]
+      'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no FROM fmb_payment_tbl WHERE CAST(hof_its AS VARCHAR) = $1 ORDER BY received_date DESC',
+      [itsId]
     );
 
     const history = historyResult.rows;
