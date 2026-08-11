@@ -5,7 +5,7 @@ const router = express.Router();
 
 // ---------------------------------------------------------------
 // GET /api/user/:itsId — public lookup, no auth.
-// Returns demographic details + payment history + outstanding dues.
+// Returns demographic details + Takhmeen contribution history + outstanding dues.
 // ---------------------------------------------------------------
 router.get('/:itsId', async (req, res) => {
   const itsId = String(req.params.itsId || '').trim();
@@ -18,24 +18,24 @@ router.get('/:itsId', async (req, res) => {
     }
 
     const user = userResult.rows[0];
-    const historyResult = await db.query(
-      'SELECT period_label, amount_billed, amount_paid, due_date, status, notes, created_at FROM payment_records WHERE user_id = $1 ORDER BY created_at DESC',
-      [user.id]
+
+    // Fetch Takhmeen contribution data from fmb_takhmeen table
+    const takhmeeResult = await db.query(
+      'SELECT id, takhmeen_yr, takhmeen_amt, comment FROM fmb_takhmeen WHERE hof_its = $1 ORDER BY takhmeen_yr DESC',
+      [itsId]
     );
 
     // Fetch payment receipts (actual payments received)
-    // Note: hof_its stores the numeric ITS ID value
     const paymentsResult = await db.query(
       'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no FROM fmb_payment_tbl WHERE hof_its = CAST($1 AS INTEGER) ORDER BY received_date DESC',
       [itsId]
     );
 
-    const history = historyResult.rows;
+    const takhmeen = takhmeeResult.rows;
     const payments = paymentsResult.rows;
 
-    // Calculate totals from payment_records (source of truth for billing)
-    const totalBilled = history.reduce((sum, r) => sum + Number(r.amount_billed), 0);
-    const totalPaid = history.reduce((sum, r) => sum + Number(r.amount_paid), 0);
+    // Calculate totals from fmb_takhmeen (source of truth for Takhmeen contributions)
+    const totalBilled = takhmeen.reduce((sum, t) => sum + Number(t.takhmeen_amt || 0), 0);
 
     // Calculate totals from payment receipts (actual amounts received)
     const totalReceived = payments.reduce((sum, p) => sum + Number(p.amt_rcv || 0), 0);
@@ -54,12 +54,11 @@ router.get('/:itsId', async (req, res) => {
         sector: user.sector,
         sub_sector: user.sub_sector
       },
-      history,
+      takhmeen,
       payments,
       summary: {
         totalBilled,
-        totalPaid,
-        outstanding: totalBilled - totalPaid,
+        outstanding: totalBilled - totalReceived,
         totalReceived,
         totalPending
       }

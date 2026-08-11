@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#3c7441">
+<meta name="description" content="Manage user accounts and payment tracking for FMB">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Admin Dashboard">
+<link rel="manifest" href="/admin/manifest.json">
+<link rel="icon" type="image/png" href="/fmb-logo.png">
+<link rel="apple-touch-icon" href="/fmb-logo.png">
 <title>Admin Dashboard — Payment Tracker</title>
 <link rel="stylesheet" href="/shared.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,8 +20,8 @@
   .section.active { display: block; opacity: 1; }
 
   .upload-instructions {
-    background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.1));
-    border: 1.5px solid rgba(59,130,246,0.3);
+    background: linear-gradient(135deg, rgba(60,116,65,0.15), rgba(90,155,98,0.1));
+    border: 1.5px solid rgba(60,116,65,0.3);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 20px;
@@ -22,16 +30,16 @@
   }
 
   .upload-instructions strong {
-    color: var(--blue);
+    color: #3c7441;
   }
 
   .upload-instructions code {
-    background: rgba(59,130,246,0.1);
+    background: rgba(60,116,65,0.1);
     padding: 4px 8px;
     border-radius: 4px;
     display: inline-block;
     margin: 0 4px;
-    border: 1px solid rgba(59,130,246,0.2);
+    border: 1px solid rgba(60,116,65,0.2);
   }
 
   .form-row {
@@ -48,7 +56,8 @@
   }
 
   .form-row button {
-    height: 44px;
+    height: 48px;
+    flex-shrink: 0;
   }
 
   @media (max-width: 768px) {
@@ -57,7 +66,127 @@
     }
   }
 
+  @media (max-width: 768px) {
+    .modern-header {
+      padding: 16px 0;
+    }
+
+    .header-content {
+      padding: 0 16px;
+      flex-wrap: wrap;
+    }
+
+    .logo-section {
+      gap: 12px;
+    }
+
+    .logo-container {
+      height: 50px;
+      min-width: 50px;
+    }
+
+    .main-logo {
+      height: 50px;
+      max-width: 160px;
+    }
+
+    .logo-fallback {
+      height: 50px;
+      width: 50px;
+      font-size: 24px;
+    }
+
+    .logo-section h1 {
+      font-size: 20px;
+    }
+
+    .logo-section p {
+      font-size: 10px;
+    }
+
+    .header-right {
+      gap: 12px;
+    }
+
+    .user-name {
+      font-size: 13px;
+    }
+
+    .user-role {
+      font-size: 11px;
+    }
+
+    .btn-logout {
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+  }
+
   @media (max-width: 640px) {
+    .modern-header {
+      padding: 12px 0;
+    }
+
+    .header-content {
+      padding: 0 12px;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .logo-section {
+      gap: 10px;
+      width: 100%;
+    }
+
+    .logo-container {
+      height: 44px;
+      min-width: 44px;
+    }
+
+    .main-logo {
+      height: 44px;
+      max-width: 140px;
+    }
+
+    .logo-fallback {
+      height: 44px;
+      width: 44px;
+      font-size: 20px;
+    }
+
+    .logo-section h1 {
+      font-size: 18px;
+    }
+
+    .logo-section p {
+      font-size: 9px;
+    }
+
+    .header-right {
+      width: 100%;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+    }
+
+    .user-name {
+      font-size: 12px;
+    }
+
+    .user-role {
+      font-size: 10px;
+    }
+
+    .btn-logout {
+      padding: 8px 12px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
     .form-row {
       flex-direction: column;
     }
@@ -68,6 +197,51 @@
       width: 100%;
       height: auto;
     }
+
+    /* Mobile table responsive improvements */
+    #usersTable thead {
+      display: none;
+    }
+
+    #usersTable tbody tr {
+      display: block;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: white;
+    }
+
+    #usersTable tbody td {
+      display: block;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    #usersTable tbody td:last-child {
+      border-bottom: none;
+    }
+
+    #usersTable tbody td::before {
+      content: attr(data-label);
+      font-weight: 700;
+      color: var(--text);
+      display: block;
+      font-size: 12px;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    #usersTable tbody td:nth-child(1)::before { content: "ITS ID"; }
+    #usersTable tbody td:nth-child(2)::before { content: "NAME"; }
+    #usersTable tbody td:nth-child(3)::before { content: "MOBILE"; }
+    #usersTable tbody td:nth-child(4)::before { content: "SECTOR"; }
+    #usersTable tbody td:nth-child(5)::before { content: "BILLED"; }
+    #usersTable tbody td:nth-child(6)::before { content: "RECEIVED"; }
+    #usersTable tbody td:nth-child(7)::before { content: "PENDING"; }
+    #usersTable tbody td:nth-child(8)::before { content: "OUTSTANDING"; }
   }
 
   .upload-result {
@@ -117,7 +291,7 @@
 
   .detail-header h3 {
     margin: 0 0 8px 0;
-    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    background: linear-gradient(135deg, #3c7441, #60a472);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -179,9 +353,9 @@
 
   /* Modern Header */
   .modern-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #474629 0%, #3c7441 100%);
     padding: 20px 0;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 40px rgba(60, 116, 65, 0.3);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -324,7 +498,7 @@
 
   /* Dashboard Container */
   body {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: linear-gradient(135deg, #f8fafc 0%, #e8f3eb 100%);
     min-height: 100vh;
   }
 
@@ -363,7 +537,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #667eea, #764ba2);
+    background: linear-gradient(90deg, #3c7441, #5a9b62);
   }
 
   .stat::after {
@@ -378,7 +552,7 @@
   .stat-icon {
     font-size: 32px !important;
     margin-bottom: 12px;
-    background: linear-gradient(135deg, #667eea15, #764ba215) !important;
+    background: linear-gradient(135deg, rgba(60,116,65,0.1), rgba(90,155,98,0.1)) !important;
     padding: 12px !important;
     width: fit-content;
   }
@@ -427,13 +601,13 @@
 
   .tab:hover {
     background: #f1f5f9;
-    color: #667eea;
+    color: #3c7441;
   }
 
   .tab.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(60, 116, 65, 0.3);
   }
 
   /* Card Styling */
@@ -477,14 +651,14 @@
   }
 
   .drop-zone:hover {
-    border-color: #667eea;
-    background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
+    border-color: #3c7441;
+    background: linear-gradient(135deg, #f0faf5 0%, #e8f3eb 100%);
     transform: scale(1.01);
   }
 
   .drop-zone.drag-over {
-    border-color: #667eea;
-    background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+    border-color: #3c7441;
+    background: linear-gradient(135deg, rgba(60,116,65,0.1) 0%, rgba(90,155,98,0.1) 100%);
     transform: scale(1.02);
   }
 
@@ -541,7 +715,7 @@
     top: 0;
     bottom: 0;
     width: 3px;
-    background: linear-gradient(180deg, #667eea, #764ba2);
+    background: linear-gradient(180deg, #3c7441, #5a9b62);
     opacity: 0;
     transition: opacity 0.3s;
   }
@@ -560,7 +734,7 @@
 
   tbody td:first-child {
     font-weight: 700;
-    color: #667eea;
+    color: #3c7441;
   }
 
   tbody td strong {
@@ -628,7 +802,7 @@
   /* Upload Instructions */
   .upload-instructions {
     background: linear-gradient(135deg, #f0f4ff 0%, #fef3c7 100%);
-    border: 1.5px solid #667eea30;
+    border: 1.5px solid #3c744130;
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 20px;
@@ -637,11 +811,11 @@
   }
 
   .upload-instructions strong {
-    color: #667eea;
+    color: #3c7441;
   }
 
   .upload-instructions code {
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(60, 116, 65, 0.1);
     padding: 4px 8px;
     border-radius: 4px;
     display: inline-block;
@@ -651,7 +825,7 @@
 
   /* Buttons */
   .form-row button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%) !important;
     color: white;
     border: none;
     padding: 12px 28px;
@@ -659,12 +833,12 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(60, 116, 65, 0.3);
   }
 
   .form-row button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 25px rgba(60, 116, 65, 0.4);
   }
 
   .form-row button:active {
@@ -673,15 +847,49 @@
 
   button.secondary {
     background: #f1f5f9 !important;
-    color: #667eea !important;
+    color: #3c7441 !important;
     border: 1.5px solid #e2e8f0 !important;
     box-shadow: none;
   }
 
   button.secondary:hover {
     background: #e2e8f0 !important;
-    border-color: #667eea !important;
+    border-color: #3c7441 !important;
     transform: translateY(-1px);
+  }
+
+  /* Sortable table headers */
+  th.sortable {
+    user-select: none;
+    transition: background-color 0.2s;
+  }
+
+  th.sortable:hover {
+    background-color: rgba(60, 116, 65, 0.15) !important;
+  }
+
+  .sort-arrow {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 12px;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  th.sortable:hover .sort-arrow {
+    opacity: 1;
+  }
+
+  th.sort-asc .sort-arrow::after {
+    content: '↑';
+    opacity: 1 !important;
+    color: #3c7441;
+  }
+
+  th.sort-desc .sort-arrow::after {
+    content: '↓';
+    opacity: 1 !important;
+    color: #3c7441;
   }
 
   /* Search Box */
@@ -694,8 +902,8 @@
   }
 
   .search-section input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #3c7441;
+    box-shadow: 0 0 0 3px rgba(60, 116, 65, 0.1);
     background: white;
   }
 
@@ -768,13 +976,6 @@
     text-align: right;
   }
 
-  #usersTable th:nth-child(9),
-  #usersTable td:nth-child(9) {
-    width: 8%;
-    min-width: 70px;
-    text-align: center;
-  }
-
   /* Upload Result */
   .upload-result {
     padding: 16px;
@@ -802,21 +1003,523 @@
   }
 
   @media (max-width: 768px) {
+    .container {
+      padding: 24px 16px !important;
+    }
+
     .header-content {
       flex-wrap: wrap;
     }
 
     .stats {
       grid-template-columns: 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat {
+      padding: 20px !important;
+    }
+
+    .stat .value {
+      font-size: 28px !important;
+    }
+
+    .stat-icon {
+      font-size: 28px !important;
+      margin-bottom: 8px;
     }
 
     .tabs {
       flex-wrap: wrap;
+      gap: 6px;
+      padding: 6px;
+      margin-bottom: 24px;
+    }
+
+    .tab {
+      padding: 10px 16px;
+      font-size: 13px;
     }
 
     .card {
       padding: 20px !important;
+      margin-bottom: 16px;
     }
+
+    .card-title {
+      font-size: 18px !important;
+    }
+
+    .card-subtitle {
+      font-size: 13px;
+    }
+
+    .search-section input {
+      padding: 12px 16px 12px 44px !important;
+      font-size: 14px;
+      min-height: 44px;
+    }
+
+    .search-box::before {
+      left: 14px;
+      font-size: 16px;
+    }
+
+    table {
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 14px 12px !important;
+      font-size: 13px;
+    }
+
+    .drop-zone {
+      padding: 24px;
+    }
+
+    .drop-zone p {
+      font-size: 13px;
+    }
+
+    .upload-instructions {
+      font-size: 12px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    .upload-instructions code {
+      font-size: 11px;
+      padding: 3px 6px;
+    }
+
+    .form-row {
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-row > div {
+      min-width: auto;
+    }
+
+    .form-row button {
+      padding: 12px 20px;
+      font-size: 14px;
+      min-height: 44px;
+    }
+
+    .btn-logout {
+      padding: 8px 14px;
+      font-size: 12px;
+      min-height: 40px;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+    }
+
+    .detail-header {
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+    }
+
+    .detail-header button {
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    #usersTable th,
+    #usersTable td {
+      padding: 12px 10px !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .container {
+      max-width: 100% !important;
+      padding: 12px 12px 40px !important;
+      margin: 0 !important;
+    }
+
+    .modern-header {
+      padding: 10px 0 !important;
+    }
+
+    .header-content {
+      max-width: 100% !important;
+      padding: 0 12px !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+      align-items: flex-start !important;
+    }
+
+    .logo-section {
+      width: 100% !important;
+      gap: 10px !important;
+      align-items: center !important;
+    }
+
+    .logo-container {
+      height: 40px !important;
+      min-width: 40px !important;
+    }
+
+    .main-logo {
+      height: 40px !important;
+      max-width: 110px !important;
+    }
+
+    .logo-fallback {
+      height: 40px !important;
+      width: 40px !important;
+      font-size: 18px !important;
+    }
+
+    .logo-section h1 {
+      font-size: 16px !important;
+      margin: 0 !important;
+    }
+
+    .logo-section p {
+      font-size: 8px !important;
+      margin: 2px 0 0 0 !important;
+    }
+
+    .header-right {
+      width: 100% !important;
+      gap: 8px !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+    }
+
+    .user-info {
+      gap: 8px !important;
+      flex: 1 !important;
+      min-width: 0 !important;
+      align-items: center !important;
+    }
+
+    .user-details {
+      min-width: 0 !important;
+    }
+
+    .user-name {
+      font-size: 11px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      margin: 0 !important;
+    }
+
+    .user-role {
+      font-size: 9px !important;
+      margin: 0 !important;
+    }
+
+    .avatar {
+      width: 32px !important;
+      height: 32px !important;
+      font-size: 16px !important;
+      flex-shrink: 0 !important;
+      min-width: 32px !important;
+    }
+
+    .btn-logout {
+      padding: 6px 10px !important;
+      font-size: 10px !important;
+      min-height: 32px !important;
+      flex-shrink: 0 !important;
+      white-space: nowrap !important;
+    }
+
+    .stats {
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      gap: 12px !important;
+      margin-bottom: 20px !important;
+      width: 100%;
+    }
+
+    .stat {
+      display: flex !important;
+      flex-direction: column !important;
+      padding: 16px !important;
+      background: white !important;
+      border-radius: 12px !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+    }
+
+    .stat::before {
+      display: none !important;
+    }
+
+    .stat::after {
+      display: none !important;
+    }
+
+    .stat:hover {
+      transform: none !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+    }
+
+    .stat-icon {
+      font-size: 24px !important;
+      margin-bottom: 8px !important;
+      padding: 10px !important;
+      background: #f1f5f9 !important;
+      border-radius: 8px;
+      width: fit-content;
+    }
+
+    .stat .value {
+      font-size: 28px !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+
+    .stat .label {
+      font-size: 11px !important;
+      color: #64748b !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+      margin-bottom: 8px;
+    }
+
+    .stat .change {
+      font-size: 11px !important;
+      margin-top: auto;
+    }
+
+    .tabs {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+      padding: 6px !important;
+      margin-bottom: 16px !important;
+      background: white !important;
+      border-radius: 10px !important;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tab {
+      padding: 8px 12px !important;
+      font-size: 11px !important;
+      white-space: nowrap !important;
+      border-radius: 6px !important;
+      flex: 0 1 auto;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%) !important;
+      color: white !important;
+    }
+
+    .card {
+      padding: 14px !important;
+      margin-bottom: 12px !important;
+      border-radius: 10px !important;
+      background: white !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    }
+
+    .card-title {
+      font-size: 15px !important;
+      margin-bottom: 6px !important;
+      margin-top: 0 !important;
+    }
+
+    .card-subtitle {
+      font-size: 11px !important;
+      margin-bottom: 12px !important;
+    }
+
+    .search-section {
+      margin-bottom: 12px !important;
+      width: 100%;
+    }
+
+    .search-section input {
+      padding: 10px 12px 10px 36px !important;
+      font-size: 14px !important;
+      min-height: 44px !important;
+      border-radius: 8px !important;
+      width: 100% !important;
+    }
+
+    .search-box {
+      width: 100% !important;
+    }
+
+    .search-box::before {
+      left: 10px !important;
+      font-size: 14px !important;
+    }
+
+    table {
+      font-size: 12px !important;
+      width: 100% !important;
+      border-collapse: collapse !important;
+    }
+
+    th, td {
+      padding: 10px 8px !important;
+      font-size: 12px !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    th {
+      background: #f8fafc !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+      font-size: 10px !important;
+    }
+
+    .table-responsive {
+      border-radius: 10px !important;
+      overflow: hidden !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    }
+
+    .drop-zone {
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .drop-zone p {
+      font-size: 12px;
+      margin: 0;
+    }
+
+    .drop-zone div:first-child {
+      font-size: 40px !important;
+    }
+
+    .upload-instructions {
+      font-size: 11px;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+    }
+
+    .upload-instructions strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .upload-instructions code {
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+
+    .form-row {
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .form-row > div {
+      width: 100%;
+    }
+
+    .form-row button {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 13px;
+      min-height: 44px;
+      border-radius: 8px;
+    }
+
+    .detail-header {
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+    }
+
+    .detail-header button {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 12px;
+      min-height: 40px;
+    }
+
+    #usersTable th,
+    #usersTable td {
+      padding: 10px 8px !important;
+    }
+
+    /* Mobile card layout for table */
+    #usersTable {
+      table-layout: auto !important;
+      width: 100% !important;
+      display: block !important;
+    }
+
+    #usersTable thead {
+      display: none !important;
+    }
+
+    #usersTable tbody {
+      display: block !important;
+      width: 100% !important;
+    }
+
+    #usersTable tbody tr {
+      display: flex !important;
+      flex-direction: column !important;
+      margin-bottom: 16px !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      background: white !important;
+      padding: 0 !important;
+    }
+
+    #usersTable tbody td {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: flex-start !important;
+      padding: 12px 12px !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      font-size: 12px !important;
+      gap: 12px !important;
+      width: 100% !important;
+    }
+
+    #usersTable tbody td:last-child {
+      border-bottom: none !important;
+    }
+
+    #usersTable tbody td::before {
+      content: "LABEL" !important;
+      font-weight: 700 !important;
+      color: #475569 !important;
+      font-size: 10px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+      min-width: 45px !important;
+      flex-shrink: 0 !important;
+      white-space: nowrap !important;
+    }
+
+    #usersTable tbody td:nth-child(1)::before { content: "ITS" !important; }
+    #usersTable tbody td:nth-child(2)::before { content: "NAME" !important; }
+    #usersTable tbody td:nth-child(3)::before { content: "MOB" !important; }
+    #usersTable tbody td:nth-child(4)::before { content: "SECT" !important; }
+    #usersTable tbody td:nth-child(5)::before { content: "TAKH" !important; }
+    #usersTable tbody td:nth-child(6)::before { content: "RCV" !important; }
+    #usersTable tbody td:nth-child(7)::before { content: "PEND" !important; }
+    #usersTable tbody td:nth-child(8)::before { content: "OUT" !important; }
   }
 
   /* Drop Zone */
@@ -860,6 +1563,9 @@
         <div>
           <h1>Payment Admin</h1>
           <p>Dashboard & Management</p>
+          <div class="developer-credit" style="margin-top: 8px; border: none; padding: 0;">
+            Developed by <a href="https://www.cyphrontech.com/" target="_blank" rel="noopener">Cyphron Tech LLP</a>
+          </div>
         </div>
       </div>
       <div class="header-right">
@@ -877,7 +1583,12 @@
 
   <div class="container">
     <!-- Statistics -->
-    <div class="stats" id="statsRow"></div>
+    <div class="stats" id="statsRow">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
 
     <!-- Tabs -->
     <div class="tabs">
@@ -890,11 +1601,11 @@
       <!-- User Data Upload -->
       <div class="card">
         <h3 class="card-title">📤 <span>Upload User Data</span></h3>
-        <p class="card-subtitle">Update customer profiles and billing information</p>
+        <p class="card-subtitle">Update customer profiles and Takhmeen contribution information</p>
 
         <div class="upload-instructions">
           <strong>📋 Required Columns:</strong> name, its_id (recommended)<br>
-          <strong>📋 Optional:</strong> sabil_no, hof_its, address, mobile, email, city, pincode, sector, sub_sector, period_label, amount_billed, amount_paid, due_date, status, notes
+          <strong>📋 Optional:</strong> sabil_no, hof_its, address, mobile, email, city, pincode, sector, sub_sector, period_label, amount_billed (Takhmeen), amount_paid, due_date, status, notes
         </div>
 
         <form id="uploadForm" class="form-row">
@@ -962,15 +1673,14 @@
           <table id="usersTable">
             <thead>
               <tr>
-                <th>🆔 ITS ID</th>
-                <th>👤 Name</th>
-                <th>📱 Mobile</th>
-                <th>🏢 Sector</th>
-                <th style="text-align: right;">💰 Billed</th>
-                <th style="text-align: right;">✅ Received</th>
-                <th style="text-align: right;">⏳ Pending</th>
-                <th style="text-align: right;">⚠️ Outstanding</th>
-                <th style="width: 100px; text-align: center;">⚙️ Action</th>
+                <th class="sortable" data-sort="its_id" style="cursor: pointer;">🆔 ITS ID <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="name" style="cursor: pointer;">👤 Name <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="mobile" style="cursor: pointer;">📱 Mobile <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="sector" style="cursor: pointer;">🏢 Sector <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="total_billed" style="text-align: right; cursor: pointer;">💰 Takhmeen <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="amount_received" style="text-align: right; cursor: pointer;">✅ Received <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="amount_pending" style="text-align: right; cursor: pointer;">⏳ Pending <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="outstanding" style="text-align: right; cursor: pointer;">⚠️ Outstanding <span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="usersBody"></tbody>
@@ -1012,6 +1722,7 @@
   </div>
 
   <script src="/admin/admin.js"></script>
+  <script src="/pwa-install.js"></script>
   <script>
     // Tab switching with animation
     document.querySelectorAll('.tab').forEach(tab => {
@@ -1028,7 +1739,6 @@
 
     // User search functionality
     const searchInput = document.getElementById('userSearch');
-    let allUsers = [];
 
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {

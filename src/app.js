@@ -11,7 +11,13 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Static assets (logo, css, js)
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('manifest.json')) {
+      res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+    }
+  }
+}));
 
 // Static front-ends
 app.use('/admin', express.static(path.join(__dirname, '..', 'public', 'admin')));

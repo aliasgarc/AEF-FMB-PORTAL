@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#3c7441">
+<meta name="description" content="Track your Takhmeen contribution and payment history">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Payment Portal">
+<link rel="manifest" href="/user/manifest.json">
+<link rel="icon" type="image/png" href="/fmb-logo.png">
+<link rel="apple-touch-icon" href="/fmb-logo.png">
 <title>Payment Portal — Check Your Account</title>
 <link rel="stylesheet" href="/shared.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -35,7 +43,7 @@
   .hero-section h2 {
     font-size: 28px;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%);
+    background: linear-gradient(135deg, #3c7441 0%, #60a472 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -113,7 +121,7 @@
 
   .result-header h2 {
     margin: 0 0 8px 0;
-    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    background: linear-gradient(135deg, #3c7441, #60a472);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -156,7 +164,7 @@
     overflow-x: auto;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border);
-    background: linear-gradient(135deg, rgba(30,41,59,0.6), rgba(51,65,85,0.4));
+    background: linear-gradient(135deg, rgba(60,116,65,0.06), rgba(90,155,98,0.04));
     box-shadow: var(--shadow);
   }
 
@@ -210,8 +218,8 @@
     display: inline-block;
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(59,130,246,0.2);
-    border-top-color: var(--blue);
+    border: 2px solid rgba(60,116,65,0.2);
+    border-top-color: #3c7441;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -230,12 +238,12 @@
   }
 
   .search-form input:focus {
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.2), 0 0 20px rgba(59,130,246,0.3);
+    box-shadow: 0 0 0 3px rgba(60,116,65,0.2), 0 0 20px rgba(60,116,65,0.3);
   }
 
   /* Skeleton loading */
   .skeleton {
-    background: linear-gradient(90deg, rgba(59,130,246,0.1) 0%, rgba(139,92,246,0.1) 50%, rgba(59,130,246,0.1) 100%);
+    background: linear-gradient(90deg, rgba(60,116,65,0.1) 0%, rgba(90,155,98,0.1) 50%, rgba(60,116,65,0.1) 100%);
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
     border-radius: 8px;
@@ -291,16 +299,16 @@
 
   /* Modern User Portal Styles */
   body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #f8fafc 0%, #e8f3eb 100%);
     min-height: 100vh;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Lato', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
   /* Header */
   .user-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #474629 0%, #3c7441 100%);
     padding: 24px 0;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 40px rgba(60, 116, 65, 0.3);
     border-bottom: 1px solid rgba(255,255,255,0.1);
   }
 
@@ -472,13 +480,13 @@
   }
 
   .search-form input:focus {
-    border-color: #667eea !important;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+    border-color: #3c7441 !important;
+    box-shadow: 0 0 0 3px rgba(60, 116, 65, 0.1) !important;
     background: white !important;
   }
 
   .search-form button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%);
     color: white;
     border: none;
     padding: 12px 28px;
@@ -487,13 +495,13 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(60, 116, 65, 0.3);
     white-space: nowrap;
   }
 
   .search-form button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 25px rgba(60, 116, 65, 0.4);
   }
 
   /* Error Message */
@@ -535,7 +543,7 @@
 
   .result-header button {
     background: #f1f5f9;
-    color: #667eea;
+    color: #3c7441;
     border: 1.5px solid #e2e8f0;
     padding: 10px 20px;
     border-radius: 8px;
@@ -547,7 +555,7 @@
 
   .result-header button:hover {
     background: #e2e8f0;
-    border-color: #667eea;
+    border-color: #3c7441;
     transform: translateY(-1px);
   }
 
@@ -576,7 +584,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #667eea, #764ba2);
+    background: linear-gradient(90deg, #3c7441, #5a9b62);
   }
 
   .stat:hover {
@@ -630,7 +638,7 @@
   /* History Table */
   .table-responsive {
     border-radius: 12px;
-    overflow: hidden;
+    overflow-x: auto;
     border: 1px solid #e2e8f0;
     box-shadow: 0 2px 12px rgba(0,0,0,0.06);
   }
@@ -638,6 +646,9 @@
   table {
     background: white;
     width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    box-sizing: border-box;
   }
 
   thead {
@@ -650,14 +661,65 @@
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 1px solid #e2e8f0 !important;
-    padding: 16px !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+    padding: 14px 12px !important;
+    text-align: left !important;
+    word-break: break-word;
+    box-sizing: border-box !important;
   }
 
   td {
-    padding: 16px !important;
+    padding: 14px 12px !important;
     border-bottom: 1px solid #e2e8f0 !important;
     color: #475569;
+    word-break: break-word;
+    box-sizing: border-box !important;
+  }
+
+  /* Receipt table column widths - explicit with box-sizing */
+  #receiptsTable {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  #receiptsTable thead tr {
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+  #receiptsTable tbody tr {
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+  #receiptsTable th, #receiptsTable td {
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  /* Column 1: Receipt # */
+  #receiptsTable th:nth-child(1), #receiptsTable td:nth-child(1) {
+    width: 10% !important;
+  }
+  /* Column 2: Date Received */
+  #receiptsTable th:nth-child(2), #receiptsTable td:nth-child(2) {
+    width: 20% !important;
+  }
+  /* Column 3: Amount */
+  #receiptsTable th:nth-child(3), #receiptsTable td:nth-child(3) {
+    width: 18% !important;
+    text-align: right !important;
+  }
+  /* Column 4: Payment Mode */
+  #receiptsTable th:nth-child(4), #receiptsTable td:nth-child(4) {
+    width: 18% !important;
+  }
+  /* Column 5: Pending */
+  #receiptsTable th:nth-child(5), #receiptsTable td:nth-child(5) {
+    width: 16% !important;
+    text-align: right !important;
+  }
+  /* Column 6: Reference */
+  #receiptsTable th:nth-child(6), #receiptsTable td:nth-child(6) {
+    width: 18% !important;
   }
 
   tbody tr {
@@ -714,6 +776,42 @@
 
   /* Responsive */
   @media (max-width: 768px) {
+    .user-header {
+      padding: 16px 0;
+    }
+
+    .user-header-content {
+      padding: 0 16px;
+    }
+
+    .header-logo {
+      gap: 12px;
+    }
+
+    .logo-container {
+      height: 50px;
+      min-width: 50px;
+    }
+
+    .main-logo {
+      height: 50px;
+      max-width: 160px;
+    }
+
+    .logo-fallback {
+      height: 50px;
+      width: 50px;
+      font-size: 24px;
+    }
+
+    .header-logo h1 {
+      font-size: 20px;
+    }
+
+    .header-logo p {
+      font-size: 10px;
+    }
+
     .hero-section h2 {
       font-size: 28px;
     }
@@ -728,11 +826,13 @@
 
     .search-form {
       flex-direction: column;
+      gap: 10px;
     }
 
     .search-form input,
     .search-form button {
       width: 100%;
+      min-height: 44px;
     }
 
     .result-header {
@@ -748,7 +848,186 @@
     }
 
     .card {
-      padding: 24px !important;
+      padding: 20px !important;
+    }
+
+    table {
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 12px 8px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .user-header {
+      padding: 12px 0;
+    }
+
+    .user-header-content {
+      padding: 0 12px;
+    }
+
+    .header-logo {
+      gap: 10px;
+      width: 100%;
+    }
+
+    .logo-container {
+      height: 44px;
+      min-width: 44px;
+    }
+
+    .main-logo {
+      height: 44px;
+      max-width: 140px;
+    }
+
+    .logo-fallback {
+      height: 44px;
+      width: 44px;
+      font-size: 20px;
+    }
+
+    .header-logo h1 {
+      font-size: 18px;
+    }
+
+    .header-logo p {
+      font-size: 9px;
+    }
+
+    .hero-icon {
+      font-size: 60px;
+      margin-bottom: 16px;
+    }
+
+    .hero-section h2 {
+      font-size: 22px;
+    }
+
+    .hero-section p {
+      font-size: 13px;
+    }
+
+    .lookup-card-wrapper {
+      max-width: 100%;
+      padding: 0 12px;
+    }
+
+    .card {
+      padding: 16px !important;
+      margin-bottom: 12px;
+    }
+
+    .search-form {
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .search-form input,
+    .search-form button {
+      width: 100%;
+      min-height: 44px;
+      font-size: 16px;
+    }
+
+    .stat {
+      padding: 20px 16px;
+    }
+
+    .stat-icon {
+      font-size: 36px;
+    }
+
+    .stat .value {
+      font-size: 32px;
+    }
+
+    .stat .label {
+      font-size: 12px;
+    }
+
+    .stat .change {
+      font-size: 12px;
+    }
+
+    /* Mobile table for payment receipts */
+    #receiptsTable {
+      display: block !important;
+      width: 100% !important;
+    }
+
+    #receiptsTable thead {
+      display: none !important;
+    }
+
+    #receiptsTable tbody {
+      display: block !important;
+    }
+
+    #receiptsTable tbody tr {
+      display: flex !important;
+      flex-direction: column !important;
+      margin-bottom: 14px !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 8px !important;
+      background: white !important;
+      padding: 0 !important;
+    }
+
+    #receiptsTable tbody td {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: flex-start !important;
+      padding: 12px 12px !important;
+      border-bottom: 1px solid var(--border) !important;
+      font-size: 12px !important;
+      gap: 12px !important;
+      width: 100% !important;
+    }
+
+    #receiptsTable tbody td:last-child {
+      border-bottom: none !important;
+    }
+
+    #receiptsTable tbody td::before {
+      font-weight: 700 !important;
+      color: var(--text) !important;
+      font-size: 10px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+      min-width: 45px !important;
+      flex-shrink: 0 !important;
+      white-space: nowrap !important;
+    }
+
+    #receiptsTable tbody td:nth-child(1)::before { content: "RECEIPT" !important; }
+    #receiptsTable tbody td:nth-child(2)::before { content: "DATE" !important; }
+    #receiptsTable tbody td:nth-child(3)::before { content: "AMT" !important; }
+    #receiptsTable tbody td:nth-child(4)::before { content: "MODE" !important; }
+    #receiptsTable tbody td:nth-child(5)::before { content: "PEND" !important; }
+    #receiptsTable tbody td:nth-child(6)::before { content: "REF" !important; }
+
+    .result-header {
+      flex-direction: column;
+    }
+
+    .result-header button {
+      width: 100%;
+    }
+
+    .container {
+      padding: 16px 12px 48px;
+    }
+
+    table {
+      font-size: 12px;
+    }
+
+    th, td {
+      padding: 10px 6px;
     }
   }
 </style>
@@ -767,6 +1046,9 @@
         <div>
           <h1>Payment Portal</h1>
           <p>Track your dues & payments</p>
+          <div class="developer-credit" style="margin-top: 8px; border: none; padding: 0;">
+            Developed by <a href="https://www.cyphrontech.com/" target="_blank" rel="noopener">Cyphron Tech LLP</a>
+          </div>
         </div>
       </div>
     </div>
@@ -814,7 +1096,19 @@
       </div>
 
       <!-- Statistics Cards -->
-      <div class="stats">
+      <div class="stats" id="statsContainer">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+
+      <div class="stats" id="statsRow" style="display: none;">
+        <div class="stat">
+          <div class="stat-icon">💰</div>
+          <div class="label">Total Takhmeen</div>
+          <div class="value">₹<span id="statTakhmeen"></span></div>
+          <div class="change">Total contribution amount</div>
+        </div>
         <div class="stat">
           <div class="stat-icon">✅</div>
           <div class="label">Amount Received</div>
@@ -861,5 +1155,6 @@
   </div>
 
   <script src="/user/user.js"></script>
+  <script src="/pwa-install.js"></script>
 </body>
 </html>

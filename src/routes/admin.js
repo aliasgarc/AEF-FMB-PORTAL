@@ -46,18 +46,20 @@ router.get('/me', requireAdmin, (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// GET /api/admin/stats — dashboard statistics (billing + payments)
+// GET /api/admin/stats — dashboard statistics (Takhmeen + payments)
 // ---------------------------------------------------------------
 router.get('/stats', requireAdmin, async (req, res) => {
   try {
-    // Get billing stats from payment_records
-    const billingResult = await db.query(`
-      SELECT
-        COALESCE(COUNT(DISTINCT u.id), 0) AS total_users,
-        COALESCE(SUM(p.amount_billed), 0)::numeric(12,2) AS total_billed,
-        COALESCE(SUM(p.amount_paid), 0)::numeric(12,2) AS total_paid
-      FROM fmb_its_tbl u
-      LEFT JOIN payment_records p ON p.user_id = u.id
+    // Get total users count
+    const usersResult = await db.query(`
+      SELECT COALESCE(COUNT(*), 0) AS total_users FROM fmb_its_tbl
+    `);
+
+    // Get total Takhmeen from all records (sum of all takhmeen_amt)
+    const takhmeeResult = await db.query(`
+      SELECT COALESCE(SUM(CAST(NULLIF(takhmeen_amt, '') AS NUMERIC(12,2))), 0)::numeric(12,2) AS total_billed
+      FROM fmb_takhmeen
+      WHERE takhmeen_amt IS NOT NULL AND takhmeen_amt != ''
     `);
 
     // Get payment receipts stats
@@ -68,14 +70,15 @@ router.get('/stats', requireAdmin, async (req, res) => {
       FROM fmb_payment_tbl
     `);
 
-    const billing = billingResult.rows[0];
+    const users = usersResult.rows[0];
+    const takhmeen = takhmeeResult.rows[0];
     const receipts = receiptsResult.rows[0];
 
     res.json({
       users: {
-        totalUsers: parseInt(billing.total_users),
-        totalBilled: parseFloat(billing.total_billed),
-        totalPaid: parseFloat(billing.total_paid)
+        totalUsers: parseInt(users.total_users),
+        totalBilled: parseFloat(takhmeen.total_billed),
+        totalPaid: parseFloat(receipts.total_received)
       },
       receipts: {
         totalReceived: parseFloat(receipts.total_received),
@@ -89,23 +92,22 @@ router.get('/stats', requireAdmin, async (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// GET /api/admin/users — list of all users with billing + payment summary
+// GET /api/admin/users — list of all users with Takhmeen + payment summary
 // ---------------------------------------------------------------
 router.get('/users', requireAdmin, async (req, res) => {
   try {
     const result = await db.query(`
       SELECT
         u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector,
-        COALESCE(SUM(p.amount_billed), 0)::numeric(12,2) AS total_billed,
-        COALESCE(SUM(p.amount_paid), 0)::numeric(12,2) AS total_paid,
-        (COALESCE(SUM(p.amount_billed), 0) - COALESCE(SUM(p.amount_paid), 0))::numeric(12,2) AS outstanding,
+        COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0)::numeric(12,2) AS total_billed,
         COALESCE(SUM(pt.amt_rcv), 0)::numeric(12,2) AS amount_received,
-        COALESCE(SUM(pt.amt_pending), 0)::numeric(12,2) AS amount_pending
+        COALESCE(SUM(pt.amt_pending), 0)::numeric(12,2) AS amount_pending,
+        (COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding
       FROM fmb_its_tbl u
-      LEFT JOIN payment_records p ON p.user_id = u.id
+      LEFT JOIN fmb_takhmeen t ON t.hof_its = u.its_id
       LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = CAST(u.its_id AS INTEGER)
-      GROUP BY u.id
-      ORDER BY outstanding DESC, u.name ASC
+      GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt
+      ORDER BY COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) DESC, COALESCE(SUM(pt.amt_rcv), 0) DESC, COALESCE(SUM(pt.amt_pending), 0) DESC, outstanding DESC
     `);
     res.json({ users: result.rows });
   } catch (err) {
@@ -216,7 +218,7 @@ router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => 
       }
       usersUpserted++;
 
-      // Insert a payment record only if the row carries billing info
+      // Insert a contribution record only if the row carries Takhmeen info
       const hasBillingInfo = row.amount_billed !== 0 || row.amount_paid !== 0 || row.period_label || row.due_date;
       if (hasBillingInfo) {
         const status = row.status || (row.amount_paid >= row.amount_billed ? 'paid' : row.amount_paid > 0 ? 'partial' : 'pending');
@@ -286,11 +288,11 @@ router.post('/upload-payments', requireAdmin, upload.single('file'), async (req,
 
       const userId = userResult.rows[0].id;
 
-      // Insert payment record
+      // Insert payment record with original hof_its from CSV
       await client.query(
         `INSERT INTO fmb_payment_tbl (receipt_no, hof_its, hof_name, amt_rcv, payment_mode, received_date, amt_pending, payment_refrence, mobile_no)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [row.receipt_no, userId, row.hof_name, row.amt_rcv, row.payment_mode, row.received_date, row.amt_pending, row.payment_refrence, row.mobile_no]
+        [row.receipt_no, row.hof_its, row.hof_name, row.amt_rcv, row.payment_mode, row.received_date, row.amt_pending, row.payment_refrence, row.mobile_no]
       );
       paymentsInserted++;
       totalReceived += Number(row.amt_rcv);
