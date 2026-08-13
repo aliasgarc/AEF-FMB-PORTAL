@@ -18,9 +18,9 @@
       "url": "/user/",
       "icons": [
         {
-          "src": "/icon-192.png",
-          "sizes": "192x192",
-          "type": "image/png",
+          "src": "/icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml",
           "purpose": "any"
         }
       ]
@@ -42,28 +42,16 @@
   ],
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icon-192-maskable.png",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%233c7441' rx='45'/><circle cx='96' cy='75' r='35' fill='white' opacity='0.9'/><path d='M 50 140 Q 50 110 96 110 Q 142 110 142 140 L 142 160 Q 142 170 132 170 L 60 170 Q 50 170 50 160 Z' fill='white' opacity='0.9'/></svg>",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any"
-    },
-    {
-      "src": "/icon-512-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ]
 }

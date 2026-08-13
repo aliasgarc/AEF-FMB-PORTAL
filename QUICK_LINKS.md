@@ -1,5 +1,10 @@
 # Payment Tracker - Quick Links & Reference
 
+## ⚡ Latest Update (August 13, 2026)
+✅ **Install prompt now works on Android!** The app now shows an automatic "📱 Install App" banner when users visit on Chrome/Edge. If it doesn't appear, users can manually install via the menu (⋮) → "Add to Home Screen". See ANDROID_INSTALL_FIX.md for details.
+
+---
+
 ## 🎯 Main Access URLs
 
 ### For Users (Members)
@@ -15,13 +20,29 @@
 ## 📱 How to Access on Your Device
 
 ### Android Phone
+
+**Option 1: Automatic Install Prompt (Recommended)**
 ```
-1. Open Chrome or Edge
+1. Open Chrome or Edge browser
 2. Visit: https://saas-payment-tracker.vercel.app/user
-3. Tap "📱 Install App" banner at top
-4. Confirm installation
-5. Icon appears on home screen!
+3. WAIT 2-3 SECONDS for banner to appear
+4. Tap "📱 Install App" banner at TOP
+5. Confirm installation dialog
+6. Icon appears on home screen! ✅
 ```
+
+**Option 2: Manual Installation (If banner doesn't show)**
+```
+1. Open Chrome or Edge browser
+2. Visit: https://saas-payment-tracker.vercel.app/user
+3. Tap menu button (⋮) at TOP RIGHT
+4. Select "Add to Home Screen"
+5. Choose app name (or keep default)
+6. Tap "Add"
+7. Icon appears on home screen! ✅
+```
+
+**Pro Tip:** Use Chrome or Edge (best PWA support). Samsung Internet and Firefox have limited PWA support.
 
 ### iPhone / iPad
 ```

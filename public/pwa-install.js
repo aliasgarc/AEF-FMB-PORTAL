@@ -4,6 +4,9 @@ class PWAManager {
     this.deferredPrompt = null;
     this.installButton = null;
     this.updateBanner = null;
+    this.promptShown = false;
+    this.isAndroid = /Android/i.test(navigator.userAgent);
+    this.isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     this.init();
   }
 
@@ -12,17 +15,16 @@ class PWAManager {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
         .then((registration) => {
-          console.log('[PWA] Service Worker registered');
+          console.log('[PWA] Service Worker registered successfully');
 
           // Check for updates periodically
-          setInterval(() => registration.update(), 60000); // Check every minute
+          setInterval(() => registration.update(), 60000);
 
-          // Listen for controller change (new SW activated)
+          // Listen for controller change
           navigator.serviceWorker.controller?.addEventListener('controllerchange', () => {
             this.showUpdateBanner();
           });
 
-          // Check if there's a waiting service worker
           if (registration.waiting) {
             this.showUpdateBanner(registration.waiting);
           }
@@ -37,14 +39,26 @@ class PWAManager {
           });
         })
         .catch((err) => console.error('[PWA] Service Worker registration failed:', err));
+    } else {
+      console.warn('[PWA] Service Workers not supported');
     }
 
     // Listen for install prompt
     window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('[PWA] Install prompt received');
       e.preventDefault();
       this.deferredPrompt = e;
       this.showInstallPrompt();
+      this.promptShown = true;
     });
+
+    // If no prompt after 3 seconds, show fallback for Android
+    setTimeout(() => {
+      if (!this.promptShown && this.isAndroid && !this.isInstalledApp()) {
+        console.log('[PWA] No native prompt, showing Android fallback banner');
+        this.showAndroidFallbackBanner();
+      }
+    }, 3000);
 
     // Listen for successful install
     window.addEventListener('appinstalled', () => {
@@ -53,11 +67,17 @@ class PWAManager {
       this.hideInstallPrompt();
     });
 
-    // Detect if app is running standalone (installed)
+    // Detect if app is running standalone
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
       console.log('[PWA] App is running in standalone mode');
       document.body.classList.add('pwa-standalone');
     }
+  }
+
+  isInstalledApp() {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true ||
+           document.referrer.includes('android-app://');
   }
 
   showInstallPrompt() {
@@ -122,6 +142,92 @@ class PWAManager {
     if (banner) {
       banner.style.display = 'none';
     }
+  }
+
+  showAndroidFallbackBanner() {
+    const existingPrompt = document.getElementById('pwa-install-prompt');
+    if (existingPrompt) {
+      existingPrompt.style.display = 'flex';
+      return;
+    }
+
+    const banner = document.createElement('div');
+    banner.id = 'pwa-install-prompt';
+    banner.className = 'pwa-install-banner';
+    banner.innerHTML = `
+      <div class="pwa-install-content">
+        <div>
+          <strong>📱 Install App</strong>
+          <p>Tap menu → Add to Home Screen</p>
+        </div>
+        <div class="pwa-install-buttons">
+          <button id="pwa-android-help-btn" class="btn">Show Me How</button>
+          <button id="pwa-close-btn" class="btn secondary">Later</button>
+        </div>
+      </div>
+    `;
+
+    document.body.insertBefore(banner, document.body.firstChild);
+
+    // Show instructions button
+    document.getElementById('pwa-android-help-btn').addEventListener('click', () => {
+      this.showAndroidInstructions();
+    });
+
+    // Close button handler
+    document.getElementById('pwa-close-btn').addEventListener('click', () => {
+      this.hideInstallPrompt();
+      localStorage.setItem('pwa-install-dismissed', new Date().getTime().toString());
+    });
+
+    // Hide if dismissed recently
+    const dismissed = localStorage.getItem('pwa-install-dismissed');
+    if (dismissed) {
+      const daysSinceDismissed = (new Date().getTime() - parseInt(dismissed)) / (1000 * 60 * 60 * 24);
+      if (daysSinceDismissed < 7) {
+        banner.style.display = 'none';
+      }
+    }
+  }
+
+  showAndroidInstructions() {
+    const modal = document.createElement('div');
+    modal.id = 'pwa-instructions-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 20px;
+    `;
+
+    modal.innerHTML = `
+      <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; text-align: center;">
+        <h2 style="color: #3c7441; margin: 0 0 16px 0;">How to Install on Android</h2>
+        <div style="text-align: left; color: #666; line-height: 1.8; margin-bottom: 20px;">
+          <p><strong>Step 1:</strong> Tap the menu button (⋮) at the top right</p>
+          <p><strong>Step 2:</strong> Select "<strong>Add to Home Screen</strong>"</p>
+          <p><strong>Step 3:</strong> Choose a name (or keep default)</p>
+          <p><strong>Step 4:</strong> Tap "<strong>Add</strong>" to confirm</p>
+          <p style="margin-top: 20px; background: #f0f0f0; padding: 12px; border-radius: 6px;">
+            ✅ Icon will appear on your home screen!<br/>
+            You can now open it like any other app.
+          </p>
+        </div>
+        <button onclick="document.getElementById('pwa-instructions-modal').remove()"
+                style="background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%); color: white; border: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; cursor: pointer;">
+          Got It!
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
   }
 
   showUpdateBanner(newWorker) {
