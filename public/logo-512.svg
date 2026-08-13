@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3c7441;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2a5230;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bgGradient)" rx="120"/>
+
+  <!-- Decorative circles -->
+  <circle cx="256" cy="120" r="70" fill="#5a9b62" opacity="0.2"/>
+  <circle cx="150" cy="350" r="50" fill="#5a9b62" opacity="0.15"/>
+
+  <!-- Main icon - stylized document/payment card -->
+  <g>
+    <!-- Card background -->
+    <rect x="110" y="140" width="292" height="220" fill="white" rx="20" opacity="0.98"/>
+
+    <!-- Top line (title) -->
+    <line x1="140" y1="180" x2="372" y2="180" stroke="#3c7441" stroke-width="8" stroke-linecap="round"/>
+
+    <!-- Content lines -->
+    <line x1="140" y1="220" x2="372" y2="220" stroke="#3c7441" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+    <line x1="140" y1="255" x2="320" y2="255" stroke="#3c7441" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+    <line x1="140" y1="290" x2="340" y2="290" stroke="#3c7441" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- Checkmark circle -->
+    <circle cx="380" cy="310" r="45" fill="#5a9b62"/>
+    <text x="380" y="330" font-size="70" font-weight="bold" fill="white" text-anchor="middle">✓</text>
+  </g>
+
+  <!-- Bottom decorative text -->
+  <text x="256" y="430" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle" opacity="0.8">AEF-FMB</text>
+</svg>

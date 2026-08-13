@@ -359,5 +359,5 @@ Everything needed to launch and maintain the Payment Tracker PWA:
 
 **Version:** 1.0 (MVP - Progressive Web App)  
 **Updated:** August 13, 2026  
-**Made by:** Cyphron Tech LLP  
+**Made by:** CyphronTech LLP  
 **Support:** ali@testrig.co.in
