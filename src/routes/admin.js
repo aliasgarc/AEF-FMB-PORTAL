@@ -2,8 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const db = require('../db');
 const { verifyAdminCredentials, issueToken, setAuthCookie, clearAuthCookie, requireAdmin } = require('../auth');
-const { parsePaymentExcel } = require('../utils/excelParser');
-const { parsePaymentExcel: parsePaymentReceipts } = require('../utils/paymentParser');
+const { parseCombinedExcel } = require('../utils/parsers');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -100,13 +99,14 @@ router.get('/users', requireAdmin, async (req, res) => {
       SELECT
         u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector,
         COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0)::numeric(12,2) AS total_billed,
+        COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0)::numeric(12,2) AS previous_amount_due,
         COALESCE(SUM(pt.amt_rcv), 0)::numeric(12,2) AS amount_received,
         COALESCE(SUM(pt.amt_pending), 0)::numeric(12,2) AS amount_pending,
-        (COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding
+        (COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0) + COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding
       FROM fmb_its_tbl u
       LEFT JOIN fmb_takhmeen t ON t.hof_its = u.its_id
       LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = CAST(u.its_id AS INTEGER)
-      GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt
+      GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt, t.previous_amount_due
       ORDER BY COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) DESC, COALESCE(SUM(pt.amt_rcv), 0) DESC, COALESCE(SUM(pt.amt_pending), 0) DESC, outstanding DESC
     `);
     res.json({ users: result.rows });
@@ -124,9 +124,10 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
     const userResult = await db.query('SELECT * FROM fmb_its_tbl WHERE id = $1', [req.params.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ error: 'User not found.' });
 
-    const historyResult = await db.query(
-      'SELECT * FROM payment_records WHERE user_id = $1 ORDER BY created_at DESC',
-      [req.params.id]
+    // Fetch takhmeen data from fmb_takhmeen (same as user page)
+    const takhmeeResult = await db.query(
+      'SELECT id, takhmeen_yr, takhmeen_amt, comment, created_at, updated_at, COALESCE(CAST(previous_amount_due AS NUMERIC(12,2)), 0)::numeric(12,2) AS previous_amount_due FROM fmb_takhmeen WHERE hof_its = $1 ORDER BY takhmeen_yr DESC',
+      [userResult.rows[0].its_id]
     );
 
     // Fetch payment receipts (hof_its stores numeric ITS ID)
@@ -136,21 +137,23 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
     );
 
     const user = userResult.rows[0];
-    const history = historyResult.rows;
+    const takhmeen = takhmeeResult.rows;
     const payments = paymentsResult.rows;
-    const totalBilled = history.reduce((sum, r) => sum + Number(r.amount_billed), 0);
-    const totalPaid = history.reduce((sum, r) => sum + Number(r.amount_paid), 0);
+
+    // Calculate totals from fmb_takhmeen (same as user page)
+    const totalBilled = takhmeen.reduce((sum, t) => sum + Number(t.takhmeen_amt || 0), 0);
+    const totalPreviousDue = takhmeen.reduce((sum, t) => sum + Number(t.previous_amount_due || 0), 0);
     const totalReceived = payments.reduce((sum, p) => sum + Number(p.amt_rcv || 0), 0);
     const totalPending = payments.reduce((sum, p) => sum + Number(p.amt_pending || 0), 0);
 
     res.json({
       user,
-      history,
+      takhmeen,
       payments,
       summary: {
         totalBilled,
-        totalPaid,
-        outstanding: totalBilled - totalPaid,
+        totalPreviousDue,
+        outstanding: totalPreviousDue + totalBilled - totalReceived,
         totalReceived,
         totalPending
       }
@@ -162,166 +165,140 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// POST /api/admin/upload — Excel bulk insert/update
+// POST /api/admin/upload-combined — Combined ITS/Takhmeen/Payment upload
 // ---------------------------------------------------------------
-router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => {
+router.post('/upload-combined', requireAdmin, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded. Field name must be "file".' });
 
-  const { rows, errors } = parsePaymentExcel(req.file.buffer);
+  const { rows, errors: parseErrors } = parseCombinedExcel(req.file.buffer);
   if (rows.length === 0) {
-    return res.status(400).json({ error: 'No valid rows found in the sheet.', details: errors });
+    return res.status(400).json({ error: 'No valid rows found in the sheet.', details: parseErrors });
   }
 
   const client = await db.pool.connect();
-  let usersUpserted = 0;
-  let paymentsInserted = 0;
+  let itsUpserted = 0;
+  let takhmeenUpserted = 0;
+  let paymentUpserted = 0;
+  const errors = [...parseErrors];
+
+  const toDateString = () => new Date().toISOString().split('T')[0];
+  const receivedDate = toDateString();
 
   try {
     await client.query('BEGIN');
 
     for (const row of rows) {
-      // Upsert user by its_id (primary lookup)
-      // First, check if user exists by its_id
-      const existingUser = await client.query(
-        'SELECT id FROM fmb_its_tbl WHERE its_id = $1',
-        [row.its_id]
-      );
+      const spName = `row_${row._rowNum}`;
 
-      let userId;
-      if (existingUser.rows.length > 0) {
-        // Update existing user
-        userId = existingUser.rows[0].id;
-        await client.query(
-          `UPDATE fmb_its_tbl SET
-             sabil_no = COALESCE($2, sabil_no),
-             hof_its = COALESCE($3, hof_its),
-             name = $4,
-             address = COALESCE($5, address),
-             mobile = COALESCE($6, mobile),
-             email = COALESCE($7, email),
-             city = COALESCE($8, city),
-             pincode = COALESCE($9, pincode),
-             sector = COALESCE($10, sector),
-             sub_sector = COALESCE($11, sub_sector)
-           WHERE id = $12`,
-          [row.its_id, row.sabil_no, row.hof_its, row.name, row.address, row.mobile, row.email, row.city, row.pincode, row.sector, row.sub_sector, userId]
-        );
-      } else {
-        // Insert new user
-        const userResult = await client.query(
-          `INSERT INTO fmb_its_tbl (its_id, sabil_no, hof_its, name, address, mobile, email, city, pincode, sector, sub_sector)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-           RETURNING id`,
-          [row.its_id, row.sabil_no, row.hof_its, row.name, row.address, row.mobile, row.email, row.city, row.pincode, row.sector, row.sub_sector]
-        );
-        userId = userResult.rows[0].id;
-      }
-      usersUpserted++;
+      try {
+        // Create a savepoint for this row so we can recover if it fails
+        await client.query(`SAVEPOINT ${spName}`);
 
-      // Insert a contribution record only if the row carries Takhmeen info
-      const hasBillingInfo = row.amount_billed !== 0 || row.amount_paid !== 0 || row.period_label || row.due_date;
-      if (hasBillingInfo) {
-        const status = row.status || (row.amount_paid >= row.amount_billed ? 'paid' : row.amount_paid > 0 ? 'partial' : 'pending');
-        await client.query(
-          `INSERT INTO payment_records (user_id, period_label, amount_billed, amount_paid, due_date, status, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [userId, row.period_label, row.amount_billed, row.amount_paid, row.due_date, status, row.notes]
+        // Step 1: Upsert into fmb_its_tbl
+        const existingIts = await client.query(
+          'SELECT id FROM fmb_its_tbl WHERE its_id = $1',
+          [row.its_id]
         );
-        paymentsInserted++;
+
+        if (existingIts.rows.length > 0) {
+          // Update existing user
+          await client.query(
+            `UPDATE fmb_its_tbl SET
+               sabil_no = COALESCE($2, sabil_no),
+               name = COALESCE($3, name),
+               sector = COALESCE($4, sector)
+             WHERE its_id = $1`,
+            [row.its_id, row.sabeel_number, row.full_name, row.mohalla_name]
+          );
+        } else {
+          // Insert new user
+          await client.query(
+            `INSERT INTO fmb_its_tbl (its_id, sabil_no, name, sector)
+             VALUES ($1, $2, $3, $4)`,
+            [row.its_id, row.sabeel_number, row.full_name, row.mohalla_name]
+          );
+        }
+        itsUpserted++;
+
+        // Step 2: Upsert into fmb_takhmeen
+        const existingTakhmeen = await client.query(
+          'SELECT id FROM fmb_takhmeen WHERE hof_its = $1',
+          [row.its_id]
+        );
+
+        if (existingTakhmeen.rows.length > 0) {
+          // Update existing takhmeen record
+          await client.query(
+            `UPDATE fmb_takhmeen SET
+               takhmeen_yr = COALESCE($2, takhmeen_yr),
+               takhmeen_amt = COALESCE($3::TEXT, takhmeen_amt),
+               previous_amount_due = COALESCE($4, previous_amount_due)
+             WHERE hof_its = $1`,
+            [row.its_id, row.takhmeen_year, row.takhmeen_amount, row.previous_amount]
+          );
+        } else {
+          // Insert new takhmeen record
+          await client.query(
+            `INSERT INTO fmb_takhmeen (hof_its, takhmeen_yr, takhmeen_amt, previous_amount_due)
+             VALUES ($1, $2, $3::TEXT, $4)`,
+            [row.its_id, row.takhmeen_year, row.takhmeen_amount, row.previous_amount]
+          );
+        }
+        takhmeenUpserted++;
+
+        // Step 3: Upsert into fmb_payment_tbl
+        const existingPayment = await client.query(
+          'SELECT payment_id FROM fmb_payment_tbl WHERE hof_its = $1',
+          [row.its_id]
+        );
+
+        if (existingPayment.rows.length > 0) {
+          // Update existing payment record
+          await client.query(
+            `UPDATE fmb_payment_tbl SET
+               hof_name = COALESCE($2, hof_name),
+               amt_rcv = COALESCE($3, amt_rcv),
+               amt_pending = COALESCE($4, amt_pending)
+             WHERE hof_its = $1`,
+            [row.its_id, row.full_name, row.paid, row.due]
+          );
+        } else {
+          // Insert new payment record with auto-generated receipt_no
+          const receiptNo = `RCP-${row.its_id}-${Date.now()}`;
+          await client.query(
+            `INSERT INTO fmb_payment_tbl (receipt_no, hof_its, hof_name, amt_rcv, payment_mode, received_date, amt_pending)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [receiptNo, row.its_id, row.full_name, row.paid, 'N/A', receivedDate, row.due]
+          );
+        }
+        paymentUpserted++;
+
+        // Row succeeded, release savepoint
+        await client.query(`RELEASE SAVEPOINT ${spName}`);
+      } catch (rowErr) {
+        // Rollback to savepoint to recover from this row's error
+        await client.query(`ROLLBACK TO SAVEPOINT ${spName}`);
+        errors.push(`Row ${row._rowNum} (ITS ${row.its_id}): ${rowErr.message}`);
       }
     }
 
     await client.query('COMMIT');
-    res.json({ ok: true, usersUpserted, paymentsInserted, warnings: errors });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Upload error:', err);
-    res.status(500).json({ error: 'Failed to process upload.', details: err.message });
-  } finally {
-    client.release();
-  }
-});
-
-// ---------------------------------------------------------------
-// POST /api/admin/upload-payments — Excel bulk insert for payments
-// ---------------------------------------------------------------
-router.post('/upload-payments', requireAdmin, upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded. Field name must be "file".' });
-
-  const { rows, errors } = parsePaymentReceipts(req.file.buffer);
-  if (rows.length === 0) {
-    return res.status(400).json({ error: 'No valid payment records found in the sheet.', details: errors });
-  }
-
-  const client = await db.pool.connect();
-  let paymentsInserted = 0;
-  let paymentsDuplicate = 0;
-  let totalReceived = 0;
-
-  try {
-    await client.query('BEGIN');
-
-    for (const row of rows) {
-      // Check if receipt already exists
-      const existingReceipt = await client.query(
-        'SELECT receipt_no FROM fmb_payment_tbl WHERE receipt_no = $1',
-        [row.receipt_no]
-      );
-
-      if (existingReceipt.rows.length > 0) {
-        // Receipt already exists, skip it
-        paymentsDuplicate++;
-        errors.push(`Receipt ${row.receipt_no} already exists - skipped.`);
-        continue;
-      }
-
-      // Look up user by its_id to get database id
-      const userResult = await client.query(
-        'SELECT id FROM fmb_its_tbl WHERE its_id = $1',
-        [String(row.hof_its)]
-      );
-
-      if (userResult.rows.length === 0) {
-        errors.push(`Receipt ${row.receipt_no}: User with ITS ID ${row.hof_its} not found - skipped.`);
-        continue;
-      }
-
-      const userId = userResult.rows[0].id;
-
-      // Insert payment record with original hof_its from CSV
-      await client.query(
-        `INSERT INTO fmb_payment_tbl (receipt_no, hof_its, hof_name, amt_rcv, payment_mode, received_date, amt_pending, payment_refrence, mobile_no)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [row.receipt_no, row.hof_its, row.hof_name, row.amt_rcv, row.payment_mode, row.received_date, row.amt_pending, row.payment_refrence, row.mobile_no]
-      );
-      paymentsInserted++;
-      totalReceived += Number(row.amt_rcv);
-    }
-
-    await client.query('COMMIT');
-
-    const successStatus = paymentsInserted > 0 ? 'ok' : (paymentsDuplicate > 0 ? 'partial' : 'error');
 
     res.json({
       ok: true,
-      status: successStatus,
-      paymentsInserted,
-      paymentsDuplicate,
       summary: {
         recordsProcessed: rows.length,
-        newRecordsInserted: paymentsInserted,
-        duplicatesSkipped: paymentsDuplicate,
-        totalReceived: totalReceived.toFixed(2),
-        message: paymentsInserted > 0
-          ? `Successfully added ${paymentsInserted} payment record(s)${paymentsDuplicate > 0 ? ` and skipped ${paymentsDuplicate} duplicate(s)` : ''}`
-          : (paymentsDuplicate > 0 ? `All ${paymentsDuplicate} record(s) were duplicates - no new payments added` : 'No valid payments to process')
+        itsUpserted,
+        takhmeenUpserted,
+        paymentUpserted,
+        rowErrors: errors.length - parseErrors.length
       },
       warnings: errors
     });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Payment upload error:', err);
-    res.status(500).json({ error: 'Failed to process payment upload.', details: err.message });
+    console.error('Combined upload error:', err);
+    res.status(500).json({ error: 'Failed to process combined upload.', details: err.message });
   } finally {
     client.release();
   }

@@ -110,20 +110,12 @@ async function init() {
     window.location.href = '/admin/login.html';
   });
 
-  const uploadForm = document.getElementById('uploadForm');
-  if (uploadForm) {
-    uploadForm.addEventListener('submit', handleUpload);
-    console.log('✓ Upload form listener attached');
+  const combinedForm = document.getElementById('uploadCombinedForm');
+  if (combinedForm) {
+    combinedForm.addEventListener('submit', handleCombinedUpload);
+    console.log('✓ Combined upload form listener attached');
   } else {
-    console.error('❌ uploadForm element not found');
-  }
-
-  const paymentForm = document.getElementById('uploadPaymentForm');
-  if (paymentForm) {
-    paymentForm.addEventListener('submit', handlePaymentUpload);
-    console.log('✓ Payment form listener attached');
-  } else {
-    console.warn('⚠️ uploadPaymentForm element not found');
+    console.warn('⚠️ uploadCombinedForm element not found');
   }
 
   document.getElementById('closeDetail').addEventListener('click', () => {
@@ -287,6 +279,7 @@ function renderUsers(users) {
     const mobile = escapeHtml(u.mobile || '-');
     const sector = escapeHtml(u.sector || '-');
     const billed = currency(u.total_billed || 0);
+    const previousDue = currency(u.previous_amount_due || 0);
     const received = currency(u.amount_received || 0);
     const pending = currency(u.amount_pending || 0);
     const outstanding = currency(u.outstanding || 0);
@@ -299,6 +292,7 @@ function renderUsers(users) {
       <td>${mobile}</td>
       <td>${sector}</td>
       <td style="text-align: right; font-weight: 600;">₹${billed}</td>
+      <td style="text-align: right; color: #f59e0b; font-weight: 600;">₹${previousDue}</td>
       <td style="text-align: right; color: #22c55e; font-weight: 600;">₹${received}</td>
       <td style="text-align: right; color: #f59e0b; font-weight: 600;">₹${pending}</td>
       <td style="text-align: right; color: ${outstandingColor}; font-weight: 700;">₹${outstanding}</td>
@@ -318,15 +312,27 @@ async function showDetail(id) {
 
   const tbody = document.getElementById('detailBody');
   tbody.innerHTML = '';
-  data.history.forEach((r) => {
+  // Use takhmeen data (same as user page)
+  const historyData = data.takhmeen || data.history || [];
+  historyData.forEach((r) => {
     const tr = document.createElement('tr');
+    // Handle both fmb_takhmeen format (takhmeen_yr, takhmeen_amt) and payment_records format (period_label, amount_billed)
+    const period = r.takhmeen_yr || r.period_label || '-';
+    const amount = r.takhmeen_amt || r.amount_billed || 0;
+    const prevDue = r.previous_amount_due || 0;
+    const paid = r.amount_paid || 0;
+    const dueDate = r.due_date ? new Date(r.due_date).toLocaleDateString() : '-';
+    const status = r.status || 'N/A';
+    const notes = r.comment || r.notes || '-';
+
     tr.innerHTML = `
-      <td>${escapeHtml(r.period_label || '-')}</td>
-      <td>${currency(r.amount_billed)}</td>
-      <td>${currency(r.amount_paid)}</td>
-      <td>${r.due_date ? new Date(r.due_date).toLocaleDateString() : '-'}</td>
-      <td><span class="badge ${r.status}">${escapeHtml(r.status)}</span></td>
-      <td>${escapeHtml(r.notes || '-')}</td>
+      <td>${escapeHtml(period)}</td>
+      <td>${currency(amount)}</td>
+      <td>${currency(prevDue)}</td>
+      <td>${currency(paid)}</td>
+      <td>${dueDate}</td>
+      <td><span class="badge ${status}">${escapeHtml(status)}</span></td>
+      <td>${escapeHtml(notes)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -335,76 +341,12 @@ async function showDetail(id) {
   document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function handleUpload(e) {
+async function handleCombinedUpload(e) {
   e.preventDefault();
-  const resultEl = document.getElementById('uploadResult');
-  const submitBtn = document.getElementById('uploadForm')?.querySelector('button');
-
-  if (!resultEl) {
-    console.error('uploadResult element not found');
-    return;
-  }
-
-  // Check for stored dropped files or regular file input
-  const files = droppedFiles['fileInput'] || document.getElementById('fileInput')?.files;
-
-  if (!files || !files.length) {
-    resultEl.textContent = '❌ Choose a file first.';
-    resultEl.className = 'upload-result error';
-    resultEl.style.display = 'block';
-    console.warn('No files selected');
-    return;
-  }
-
-  console.log('Files selected:', files[0].name);
-
-  const formData = new FormData();
-  formData.append('file', files[0]);
-
-  resultEl.textContent = '⏳ Uploading...';
-  resultEl.className = 'upload-result';
-  resultEl.style.display = 'block';
-  if (submitBtn) submitBtn.disabled = true;
-
-  console.log('Starting upload...');
-
-  try {
-    const res = await fetchWithTimeout('/api/admin/upload', { method: 'POST', body: formData }, 60000);
-    console.log('Upload response status:', res.status);
-    const data = await res.json();
-    console.log('Upload response data:', data);
-
-    if (!res.ok) {
-      resultEl.textContent = '❌ ' + (data.error || 'Upload failed.');
-      resultEl.className = 'upload-result error';
-      return;
-    }
-
-    const warnings = data.warnings && data.warnings.length ? ` (⚠️ ${data.warnings.length} rows skipped)` : '';
-    resultEl.innerHTML = `✅ Success: ${data.usersUpserted} users updated, ${data.paymentsInserted} payment records added${warnings}`;
-    resultEl.className = 'upload-result success';
-
-    // Clear the stored files and reset the input
-    droppedFiles['fileInput'] = null;
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) fileInput.value = '';
-
-    setTimeout(() => loadUsers(), 500);
-  } catch (err) {
-    resultEl.textContent = '❌ Network error during upload.';
-    resultEl.className = 'upload-result error';
-  } finally {
-    submitBtn.disabled = false;
-  }
-}
-
-async function handlePaymentUpload(e) {
-  e.preventDefault();
-  const resultEl = document.getElementById('paymentUploadResult');
+  const resultEl = document.getElementById('combinedUploadResult');
   const submitBtn = e.target.querySelector('button');
 
-  // Check for stored dropped files or regular file input
-  const files = droppedFiles['paymentFileInput'] || document.getElementById('paymentFileInput')?.files;
+  const files = droppedFiles['combinedFileInput'] || document.getElementById('combinedFileInput')?.files;
 
   if (!files || !files.length) {
     resultEl.textContent = '❌ Choose a file first.';
@@ -416,13 +358,13 @@ async function handlePaymentUpload(e) {
   const formData = new FormData();
   formData.append('file', files[0]);
 
-  resultEl.textContent = '⏳ Uploading payments...';
+  resultEl.textContent = '⏳ Uploading combined FMB data...';
   resultEl.className = 'upload-result';
   resultEl.style.display = 'block';
   submitBtn.disabled = true;
 
   try {
-    const res = await fetchWithTimeout('/api/admin/upload-payments', { method: 'POST', body: formData }, 60000);
+    const res = await fetchWithTimeout('/api/admin/upload-combined', { method: 'POST', body: formData }, 60000);
     const data = await res.json();
 
     if (!res.ok) {
@@ -431,23 +373,25 @@ async function handlePaymentUpload(e) {
       return;
     }
 
-    // Build result message from API response
-    let resultMessage = `✅ ${data.summary.message}<br>💰 Total Received: ₹${data.summary.totalReceived}`;
+    let resultMessage = `✅ Upload completed successfully<br>📊 Summary:`;
+    resultMessage += `<br>  • Records processed: ${data.summary.recordsProcessed}`;
+    resultMessage += `<br>  • ITS updated/inserted: ${data.summary.itsUpserted}`;
+    resultMessage += `<br>  • Takhmeen updated/inserted: ${data.summary.takhmeenUpserted}`;
+    resultMessage += `<br>  • Payments updated/inserted: ${data.summary.paymentUpserted}`;
+    resultMessage += `<br>  • Row errors: ${data.summary.rowErrors}`;
 
-    // Add processing summary
-    resultMessage += `<br>📊 Processed: ${data.summary.recordsProcessed} records | Added: ${data.summary.newRecordsInserted} | Duplicates: ${data.summary.duplicatesSkipped}`;
-
-    // Add warnings if any
     if (data.warnings && data.warnings.length > 0) {
-      resultMessage += `<br>⚠️ ${data.warnings.length} warning(s)`;
+      resultMessage += `<br>⚠️ ${data.warnings.length} issue(s):`;
+      data.warnings.forEach(warn => {
+        resultMessage += `<br>  • ${escapeHtml(warn)}`;
+      });
     }
 
     resultEl.innerHTML = resultMessage;
-    resultEl.className = data.paymentsInserted > 0 ? 'upload-result success' : (data.paymentsDuplicate > 0 ? 'upload-result warning' : 'upload-result error');
+    resultEl.className = data.summary.rowErrors === 0 ? 'upload-result success' : 'upload-result warning';
 
-    // Clear the stored files and reset the input
-    droppedFiles['paymentFileInput'] = null;
-    const fileInput = document.getElementById('paymentFileInput');
+    droppedFiles['combinedFileInput'] = null;
+    const fileInput = document.getElementById('combinedFileInput');
     if (fileInput) fileInput.value = '';
   } catch (err) {
     resultEl.textContent = '❌ Network error during upload.';
@@ -528,16 +472,121 @@ function setupDragDrop(dropZoneId, fileInputId) {
 }
 
 // Initialize drag-drop when page loads
-if (document.getElementById('dropZone')) {
-  setupDragDrop('dropZone', 'fileInput');
-  console.log('✓ User data drop zone initialized');
+if (document.getElementById('combinedDropZone')) {
+  setupDragDrop('combinedDropZone', 'combinedFileInput');
+  console.log('✓ Combined upload drop zone initialized');
 } else {
-  console.error('❌ dropZone element not found');
+  console.warn('⚠️ combinedDropZone element not found');
 }
 
-if (document.getElementById('paymentDropZone')) {
-  setupDragDrop('paymentDropZone', 'paymentFileInput');
-  console.log('✓ Payment drop zone initialized');
-} else {
-  console.warn('⚠️ paymentDropZone element not found');
+// ========== NOTIFICATIONS SYSTEM ==========
+const notificationForm = document.getElementById('notificationForm');
+if (notificationForm) {
+  notificationForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById('notificationTitle').value.trim();
+    const message = document.getElementById('notificationMessage').value.trim();
+    const sendBtn = document.getElementById('sendNotificationBtn');
+    const statusEl = document.getElementById('notificationStatus');
+    const errorEl = document.getElementById('notificationError');
+    const resultDiv = document.getElementById('notificationResult');
+
+    if (!title || !message) {
+      errorEl.textContent = '❌ Title and message are required';
+      errorEl.style.display = 'block';
+      statusEl.style.display = 'none';
+      return;
+    }
+
+    sendBtn.disabled = true;
+    const originalText = sendBtn.innerHTML;
+    sendBtn.innerHTML = '<span class="loading-spinner"></span> Sending...';
+    statusEl.style.display = 'none';
+    errorEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/notifications/admin/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, message, adminId: 'admin' })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send notification');
+      }
+
+      // Show success
+      statusEl.textContent = `✅ ${data.message}`;
+      statusEl.style.display = 'block';
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `<p style="margin: 0; color: #16a34a; font-weight: 600;">✅ ${data.message}</p>`;
+
+      // Clear form
+      notificationForm.reset();
+
+      // Reload notifications list
+      loadRecentNotifications();
+
+      // Hide success after 5 seconds
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+        resultDiv.style.display = 'none';
+      }, 5000);
+    } catch (err) {
+      errorEl.textContent = `❌ ${err.message}`;
+      errorEl.style.display = 'block';
+      console.error('Notification error:', err);
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = originalText;
+    }
+  });
+
+  // Load recent notifications on page load
+  loadRecentNotifications();
 }
+
+async function loadRecentNotifications() {
+  const notificationsList = document.getElementById('notificationsList');
+  if (!notificationsList) return;
+
+  try {
+    const res = await fetch('/api/notifications/admin/all');
+    const data = await res.json();
+
+    if (!data.notifications || data.notifications.length === 0) {
+      notificationsList.innerHTML = '<p style="color: var(--text-lighter); text-align: center; padding: 20px;">No notifications sent yet</p>';
+      return;
+    }
+
+    notificationsList.innerHTML = data.notifications
+      .slice(0, 10)
+      .map((notif, index) => {
+        const date = new Date(notif.created_at).toLocaleDateString('en-IN', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        return `
+          <div style="border-bottom: 1px solid var(--border); padding: 12px 0; ${index === 0 ? 'border-top: 1px solid var(--border);' : ''}">
+            <div style="font-weight: 600; color: #1a1a1a; margin-bottom: 4px;">${notif.title}</div>
+            <div style="color: var(--text-light); font-size: 13px; margin-bottom: 8px;">${notif.message.substring(0, 100)}${notif.message.length > 100 ? '...' : ''}</div>
+            <div style="color: var(--text-lighter); font-size: 12px;">
+              📅 ${date} • ${notif.is_active ? '✅ Active' : '⏸️ Inactive'}
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  } catch (err) {
+    console.error('Failed to load notifications:', err);
+    notificationsList.innerHTML = '<p style="color: #dc2626; padding: 20px;">Failed to load notifications</p>';
+  }
+}
+
+console.log('✓ Notifications system initialized');

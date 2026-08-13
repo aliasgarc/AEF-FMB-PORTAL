@@ -126,7 +126,21 @@ p { margin: 0 0 14px 0; line-height: 1.7; }
 
 @media (max-width: 640px) {
   .developer-credit {
-    display: none;
+    display: block !important;
+    font-size: 11px;
+    color: rgba(255,255,255,0.8);
+    margin-top: 8px;
+    padding-left: 0;
+    border: none;
+  }
+
+  .developer-credit a {
+    color: rgba(255,255,255,0.9);
+    font-weight: 700;
+  }
+
+  .developer-credit a:hover {
+    color: white;
   }
 }
 

@@ -132,4 +132,169 @@ self.addEventListener('message', (event) => {
   }
 });
 
-console.log('[ServiceWorker] Loaded');
+// ========== PUSH NOTIFICATIONS ==========
+// Handle push notifications (when app is closed or in background)
+self.addEventListener('push', (event) => {
+  console.log('[ServiceWorker] Push notification received');
+
+  if (!event.data) {
+    console.log('[ServiceWorker] No data in push event');
+    return;
+  }
+
+  try {
+    const data = event.data.json();
+    const {
+      title = '🔔 Notification',
+      message = '',
+      notificationId = '',
+      type = 'notification',  // 'notification' or 'app-update'
+      version = ''
+    } = data;
+
+    // Special handling for app update notifications
+    const isAppUpdate = type === 'app-update' || title.includes('🔄');
+    const urgency = isAppUpdate ? 'max' : 'normal';
+
+    const options = {
+      body: message,
+      icon: '/fmb-logo-192.png',
+      badge: '/fmb-logo-192.png',
+      tag: `notification-${notificationId}`, // Prevents duplicate notifications
+      requireInteraction: isAppUpdate ? true : true, // Keep both visible
+      urgency: urgency, // 'max' for app updates
+      data: {
+        notificationId,
+        type: type,
+        version: version,
+        url: '/user/'
+      },
+      actions: [
+        {
+          action: 'open',
+          title: isAppUpdate ? '🔄 Update Now' : 'Open Portal',
+          icon: '/fmb-logo-192.png'
+        },
+        {
+          action: 'close',
+          title: 'Later'
+        }
+      ]
+    };
+
+    // Log app update push notifications
+    if (isAppUpdate) {
+      console.log(`[ServiceWorker] App Update Push Notification: v${version}`);
+      console.log(`[ServiceWorker] Notification: "${title}" - "${message}"`);
+    }
+
+    event.waitUntil(
+      self.registration.showNotification(title, options)
+    );
+  } catch (err) {
+    console.error('[ServiceWorker] Error handling push:', err);
+    // Fallback notification
+    event.waitUntil(
+      self.registration.showNotification('🔔 AEF-FMB Portal', {
+        body: 'You have a new notification. Open the app to view.',
+        icon: '/fmb-logo-192.png',
+        tag: 'fallback-notification',
+        requireInteraction: true
+      })
+    );
+  }
+});
+
+// Handle notification clicks
+self.addEventListener('notificationclick', (event) => {
+  console.log('[ServiceWorker] Notification clicked:', event.action);
+  event.notification.close();
+
+  // Don't open for "close" action
+  if (event.action === 'close') {
+    return;
+  }
+
+  // Open the app and go to user portal
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Check if app is already open
+      for (const client of clientList) {
+        if (client.url === '/' || client.url.includes('/user/')) {
+          client.focus();
+          return client;
+        }
+      }
+      // If not open, open new window
+      return clients.openWindow('/user/');
+    })
+  );
+});
+
+// Handle notification close
+self.addEventListener('notificationclose', (event) => {
+  console.log('[ServiceWorker] Notification closed:', event.notification.tag);
+  const notificationId = event.notification.data?.notificationId;
+  if (notificationId) {
+    // Optionally, mark as read when user closes notification
+    // (This is optional and depends on your use case)
+  }
+});
+
+// ========== PERIODIC NOTIFICATION CHECK ==========
+// Check for new notifications every 5 minutes (even when app closed)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CHECK_NOTIFICATIONS') {
+    checkForNewNotifications(event.data.itsId);
+  }
+});
+
+async function checkForNewNotifications(itsId) {
+  if (!itsId) return;
+
+  try {
+    const res = await fetch(`/api/notifications/${encodeURIComponent(itsId)}`);
+    if (!res.ok) return;
+
+    const data = await res.json();
+
+    if (data.notifications && data.unreadCount > 0) {
+      // Show notification for unread items
+      data.notifications.forEach(notif => {
+        if (notif.is_unread) {
+          console.log(`[ServiceWorker] Showing notification: ${notif.title}`);
+          self.registration.showNotification(notif.title, {
+            body: notif.message,
+            icon: '/fmb-logo-192.png',
+            badge: '/fmb-logo-192.png',
+            tag: `notification-${notif.id}`,
+            requireInteraction: true,
+            data: {
+              notificationId: notif.id,
+              url: '/user/'
+            }
+          });
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('[ServiceWorker] Failed to check notifications:', err);
+  }
+}
+
+// Periodically check for notifications (every 5 minutes)
+setInterval(() => {
+  console.log('[ServiceWorker] Periodic notification check');
+  // Get itsId from IndexedDB or localStorage
+  if (typeof self.clients !== 'undefined') {
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'REQUEST_ITS_ID'
+        });
+      });
+    });
+  }
+}, 5 * 60 * 1000); // 5 minutes
+
+console.log('[ServiceWorker] Loaded with periodic notification checks');
