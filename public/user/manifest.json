@@ -1,6 +1,6 @@
 {
-  "name": "Payment Portal - Check Your Account",
-  "short_name": "Payment Portal",
+  "name": "AEF-FMB-Portal - Check Your Account",
+  "short_name": "AEF-FMB-Portal",
   "description": "Track your Takhmeen contribution and payment history with FMB",
   "start_url": "/user/",
   "scope": "/user/",
