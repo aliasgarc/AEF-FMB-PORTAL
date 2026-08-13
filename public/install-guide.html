@@ -255,6 +255,9 @@
       <p>Quick guide to download and use the app on your device</p>
     </div>
 
+    <!-- Device-Specific Instructions Container -->
+    <div id="device-instructions-container"></div>
+
     <!-- Platform Cards -->
     <div class="platforms">
       <!-- Android -->
@@ -346,11 +349,12 @@
 
     <!-- Footer -->
     <div class="footer">
-      <p>Payment Tracker v1.0 • Made with ❤️ by Cyphron Tech LLP</p>
+      <p>Payment Tracker v1.0 • Made with ❤️ by CyphronTech LLP</p>
       <p>For support, contact: ali@testrig.co.in</p>
     </div>
   </div>
 
+  <script src="/device-detection.js"></script>
   <script>
     function goToApp() {
       // Detect which app user should access based on browser context
@@ -404,7 +408,7 @@ OFFLINE USE:
 SUPPORT:
 Email: ali@testrig.co.in
 
-Made with ❤️ by Cyphron Tech LLP`;
+Made with ❤️ by CyphronTech LLP`;
 
       const element = document.createElement('a');
       element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));

@@ -52,13 +52,13 @@ class PWAManager {
       this.promptShown = true;
     });
 
-    // If no prompt after 3 seconds, show fallback for Android
+    // If no prompt after 4 seconds, show improved Android fallback
     setTimeout(() => {
       if (!this.promptShown && this.isAndroid && !this.isInstalledApp()) {
-        console.log('[PWA] No native prompt, showing Android fallback banner');
-        this.showAndroidFallbackBanner();
+        console.log('[PWA] No native prompt, showing improved Android banner');
+        this.showImprovedAndroidInstall();
       }
-    }, 3000);
+    }, 4000);
 
     // Listen for successful install
     window.addEventListener('appinstalled', () => {
@@ -142,6 +142,107 @@ class PWAManager {
     if (banner) {
       banner.style.display = 'none';
     }
+  }
+
+  showImprovedAndroidInstall() {
+    const existingPrompt = document.getElementById('pwa-install-prompt');
+    if (existingPrompt) {
+      existingPrompt.style.display = 'flex';
+      return;
+    }
+
+    const banner = document.createElement('div');
+    banner.id = 'pwa-install-prompt';
+    banner.className = 'pwa-install-banner';
+    banner.innerHTML = `
+      <div class="pwa-install-content">
+        <div>
+          <strong>📱 Install App</strong>
+          <p>One-tap installation to your device</p>
+        </div>
+        <div class="pwa-install-buttons">
+          <button id="pwa-android-install-btn" class="btn" style="background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%); font-size: 16px; font-weight: 700;">Install Now</button>
+          <button id="pwa-close-btn" class="btn secondary">Later</button>
+        </div>
+      </div>
+    `;
+
+    document.body.insertBefore(banner, document.body.firstChild);
+
+    // Install button handler - show step-by-step instructions
+    document.getElementById('pwa-android-install-btn').addEventListener('click', () => {
+      this.showAndroidInstallSteps();
+    });
+
+    // Close button handler
+    document.getElementById('pwa-close-btn').addEventListener('click', () => {
+      this.hideInstallPrompt();
+      localStorage.setItem('pwa-install-dismissed', new Date().getTime().toString());
+    });
+
+    // Hide if dismissed recently
+    const dismissed = localStorage.getItem('pwa-install-dismissed');
+    if (dismissed) {
+      const daysSinceDismissed = (new Date().getTime() - parseInt(dismissed)) / (1000 * 60 * 60 * 24);
+      if (daysSinceDismissed < 7) {
+        banner.style.display = 'none';
+      }
+    }
+  }
+
+  showAndroidInstallSteps() {
+    const modal = document.createElement('div');
+    modal.id = 'pwa-install-steps-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 20px;
+    `;
+
+    modal.innerHTML = `
+      <div style="background: white; border-radius: 16px; padding: 28px; max-width: 520px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <h2 style="color: #3c7441; margin: 0 0 24px 0; font-size: 22px;">📱 Install Payment Tracker</h2>
+
+        <div style="background: #f8fafc; border-left: 4px solid #3c7441; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+          <strong style="color: #3c7441; display: block; margin-bottom: 8px;">Quick Install</strong>
+          <p style="margin: 0; color: #666; font-size: 14px;">Tap the browser menu (⋮) → "<strong>Add to Home Screen</strong>"</p>
+        </div>
+
+        <div style="color: #666; line-height: 1.8; margin-bottom: 24px;">
+          <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+            <span style="background: #3c7441; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 12px; font-weight: 700;">1</span>
+            <div><strong style="color: #1a1a1a;">Tap the menu</strong><br/><span style="font-size: 13px;">Look for three dots (⋮) in top right corner</span></div>
+          </div>
+          <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+            <span style="background: #3c7441; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 12px; font-weight: 700;">2</span>
+            <div><strong style="color: #1a1a1a;">Find "Add to Home Screen"</strong><br/><span style="font-size: 13px;">Scroll down if you don't see it</span></div>
+          </div>
+          <div style="display: flex; align-items: flex-start;">
+            <span style="background: #3c7441; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 12px; font-weight: 700;">3</span>
+            <div><strong style="color: #1a1a1a;">Confirm & done!</strong><br/><span style="font-size: 13px;">Icon appears on your home screen</span></div>
+          </div>
+        </div>
+
+        <div style="background: #e8f5e9; border: 1px solid #81c784; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+          <strong style="color: #2e7d32; font-size: 14px;">✅ No downloads or signup needed!</strong>
+        </div>
+
+        <button onclick="document.getElementById('pwa-install-steps-modal').remove()"
+                style="width: 100%; background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%); color: white; border: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 16px;">
+          Got It! Open Menu (⋮)
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
   }
 
   showAndroidFallbackBanner() {

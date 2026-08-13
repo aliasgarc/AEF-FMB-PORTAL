@@ -537,4 +537,4 @@ Before launching to all users:
 
 **Version:** 1.0 (MVP - Progressive Web App)  
 **Last Updated:** August 2026  
-**Made by:** Cyphron Tech LLP
+**Made by:** CyphronTech LLP

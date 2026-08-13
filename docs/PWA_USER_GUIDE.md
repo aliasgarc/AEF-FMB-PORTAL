@@ -390,4 +390,4 @@ Email: ali@testrig.co.in
 
 **Enjoy using Payment Tracker! 🚀**
 
-Made with ❤️ by Cyphron Tech LLP
+Made with ❤️ by CyphronTech LLP

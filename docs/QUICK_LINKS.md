@@ -347,7 +347,7 @@ Print this page or send this message to users:
 
 ## 👨‍💻 Developer Information
 
-**Developer:** Cyphron Tech LLP  
+**Developer:** CyphronTech LLP  
 **Email:** ali@testrig.co.in  
 **Platform:** Vercel  
 **Technology:** Node.js, PostgreSQL, Service Workers, PWA

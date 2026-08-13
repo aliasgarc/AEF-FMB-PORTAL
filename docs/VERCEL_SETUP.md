@@ -472,6 +472,6 @@ Share the links with your users and they can start checking their accounts immed
 **Version:** 1.0 (MVP)  
 **Hosted on:** Vercel  
 **Last Updated:** August 2026  
-**Made by:** Cyphron Tech LLP
+**Made by:** CyphronTech LLP
 
 Contact: ali@testrig.co.in

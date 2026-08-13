@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AEF-FMB-Portal">
 <link rel="manifest" href="/user/manifest.json">
-<link rel="icon" href="/icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="icon" href="/logo-192.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/logo-192.svg">
 <title>AEF-FMB-Portal — Check Your Account</title>
 <link rel="stylesheet" href="/shared.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -978,14 +978,15 @@
     }
 
     #receiptsTable tbody td {
-      display: flex !important;
-      flex-direction: row !important;
-      align-items: flex-start !important;
-      padding: 12px 12px !important;
+      display: grid !important;
+      grid-template-columns: 50px 1fr !important;
+      align-items: center !important;
+      padding: 10px 12px !important;
       border-bottom: 1px solid var(--border) !important;
-      font-size: 12px !important;
-      gap: 12px !important;
+      font-size: 13px !important;
+      gap: 10px !important;
       width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     #receiptsTable tbody td:last-child {
@@ -994,21 +995,19 @@
 
     #receiptsTable tbody td::before {
       font-weight: 700 !important;
-      color: var(--text) !important;
-      font-size: 10px !important;
+      color: #666 !important;
+      font-size: 9px !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.05em !important;
-      min-width: 45px !important;
-      flex-shrink: 0 !important;
+      letter-spacing: 0.8px !important;
       white-space: nowrap !important;
     }
 
-    #receiptsTable tbody td:nth-child(1)::before { content: "RECEIPT" !important; }
-    #receiptsTable tbody td:nth-child(2)::before { content: "DATE" !important; }
-    #receiptsTable tbody td:nth-child(3)::before { content: "AMT" !important; }
-    #receiptsTable tbody td:nth-child(4)::before { content: "MODE" !important; }
-    #receiptsTable tbody td:nth-child(5)::before { content: "PEND" !important; }
-    #receiptsTable tbody td:nth-child(6)::before { content: "REF" !important; }
+    #receiptsTable tbody td:nth-child(1)::before { content: "Receipt" !important; }
+    #receiptsTable tbody td:nth-child(2)::before { content: "Date" !important; }
+    #receiptsTable tbody td:nth-child(3)::before { content: "Amount" !important; }
+    #receiptsTable tbody td:nth-child(4)::before { content: "Mode" !important; }
+    #receiptsTable tbody td:nth-child(5)::before { content: "Pending" !important; }
+    #receiptsTable tbody td:nth-child(6)::before { content: "Ref" !important; }
 
     .result-header {
       flex-direction: column;
@@ -1047,7 +1046,7 @@
           <h1>AEF-FMB-Portal</h1>
           <p>Track your dues & payments</p>
           <div class="developer-credit" style="margin-top: 8px; border: none; padding: 0;">
-            Developed by <a href="https://www.cyphrontech.com/" target="_blank" rel="noopener">Cyphron Tech LLP</a>
+            Developed by <a href="https://www.cyphrontech.com/" target="_blank" rel="noopener">Cyphrontech LLP</a>
           </div>
         </div>
       </div>
