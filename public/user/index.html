@@ -722,6 +722,44 @@
     width: 18% !important;
   }
 
+  /* Takhmeen table column widths */
+  #takhmeenTable {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  #takhmeenTable thead tr {
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+  #takhmeenTable tbody tr {
+    display: table !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+  #takhmeenTable th, #takhmeenTable td {
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  /* Column 1: Year */
+  #takhmeenTable th:nth-child(1), #takhmeenTable td:nth-child(1) {
+    width: 15% !important;
+  }
+  /* Column 2: Amount Billed */
+  #takhmeenTable th:nth-child(2), #takhmeenTable td:nth-child(2) {
+    width: 28% !important;
+    text-align: right !important;
+  }
+  /* Column 3: Previous Due */
+  #takhmeenTable th:nth-child(3), #takhmeenTable td:nth-child(3) {
+    width: 28% !important;
+    text-align: right !important;
+  }
+  /* Column 4: Comments */
+  #takhmeenTable th:nth-child(4), #takhmeenTable td:nth-child(4) {
+    width: 29% !important;
+  }
+
   tbody tr {
     transition: all 0.3s;
   }
@@ -772,6 +810,60 @@
     display: block;
     font-size: 18px;
     margin-bottom: 8px;
+  }
+
+  /* Notifications Banner */
+  .notification-banner {
+    background: linear-gradient(135deg, #3c7441 0%, #2d5a34 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+    color: white;
+    margin-bottom: 16px;
+    animation: slideDown 0.4s ease-out;
+    box-shadow: 0 4px 12px rgba(60, 116, 65, 0.2);
+  }
+
+  .notification-banner h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .notification-banner p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.95;
+  }
+
+  .notification-banner .close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .notification-banner .close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .notification-banner {
+    position: relative;
   }
 
   /* Responsive */
@@ -953,7 +1045,7 @@
       font-size: 12px;
     }
 
-    /* Mobile table for payment receipts */
+    /* Mobile Receipt Table - Perfectly Aligned Layout */
     #receiptsTable {
       display: block !important;
       width: 100% !important;
@@ -968,46 +1060,138 @@
     }
 
     #receiptsTable tbody tr {
-      display: flex !important;
-      flex-direction: column !important;
-      margin-bottom: 14px !important;
+      display: block !important;
+      margin-bottom: 16px !important;
       border: 1px solid var(--border) !important;
       border-radius: 8px !important;
+      overflow: hidden !important;
       background: white !important;
       padding: 0 !important;
     }
 
+    /* Table cells - consistent block layout */
     #receiptsTable tbody td {
-      display: grid !important;
-      grid-template-columns: 50px 1fr !important;
-      align-items: center !important;
-      padding: 10px 12px !important;
+      display: block !important;
+      padding: 11px 14px !important;
       border-bottom: 1px solid var(--border) !important;
       font-size: 13px !important;
-      gap: 10px !important;
       width: 100% !important;
       box-sizing: border-box !important;
+      color: #1a1a1a !important;
+      text-align: left !important;
+      word-wrap: break-word !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      white-space: normal !important;
+      line-height: 1.4 !important;
     }
 
     #receiptsTable tbody td:last-child {
       border-bottom: none !important;
     }
 
+    /* Labels - LEFT-ALIGNED, bold, uppercase */
     #receiptsTable tbody td::before {
       font-weight: 700 !important;
-      color: #666 !important;
-      font-size: 9px !important;
+      color: #3c7441 !important;
+      font-size: 10px !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.8px !important;
+      letter-spacing: 1px !important;
+      display: block !important;
+      margin-bottom: 5px !important;
       white-space: nowrap !important;
+      text-align: left !important;
     }
 
-    #receiptsTable tbody td:nth-child(1)::before { content: "Receipt" !important; }
-    #receiptsTable tbody td:nth-child(2)::before { content: "Date" !important; }
-    #receiptsTable tbody td:nth-child(3)::before { content: "Amount" !important; }
-    #receiptsTable tbody td:nth-child(4)::before { content: "Mode" !important; }
-    #receiptsTable tbody td:nth-child(5)::before { content: "Pending" !important; }
-    #receiptsTable tbody td:nth-child(6)::before { content: "Ref" !important; }
+    /* Value styling - consistent left alignment */
+    #receiptsTable tbody td {
+      font-variant-numeric: tabular-nums !important;
+    }
+
+    /* Currency amounts - bold for emphasis */
+    #receiptsTable tbody td:nth-child(3),
+    #receiptsTable tbody td:nth-child(5) {
+      font-weight: 600 !important;
+      color: #1a1a1a !important;
+    }
+
+    #receiptsTable tbody td:nth-child(1)::before { content: "RECEIPT" !important; }
+    #receiptsTable tbody td:nth-child(2)::before { content: "DATE" !important; }
+    #receiptsTable tbody td:nth-child(3)::before { content: "AMOUNT" !important; }
+    #receiptsTable tbody td:nth-child(4)::before { content: "MODE" !important; }
+    #receiptsTable tbody td:nth-child(5)::before { content: "PENDING" !important; }
+    #receiptsTable tbody td:nth-child(6)::before { content: "REF" !important; }
+
+    /* Mobile Takhmeen Table */
+    #takhmeenTable {
+      display: block !important;
+      width: 100% !important;
+    }
+
+    #takhmeenTable thead {
+      display: none !important;
+    }
+
+    #takhmeenTable tbody {
+      display: block !important;
+    }
+
+    #takhmeenTable tbody tr {
+      display: block !important;
+      margin-bottom: 16px !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 8px !important;
+      overflow: hidden !important;
+      background: white !important;
+      padding: 0 !important;
+    }
+
+    #takhmeenTable tbody td {
+      display: block !important;
+      padding: 11px 14px !important;
+      border-bottom: 1px solid var(--border) !important;
+      font-size: 13px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      color: #1a1a1a !important;
+      text-align: left !important;
+      word-wrap: break-word !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      white-space: normal !important;
+      line-height: 1.4 !important;
+    }
+
+    #takhmeenTable tbody td:last-child {
+      border-bottom: none !important;
+    }
+
+    #takhmeenTable tbody td::before {
+      font-weight: 700 !important;
+      color: #3c7441 !important;
+      font-size: 10px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 1px !important;
+      display: block !important;
+      margin-bottom: 5px !important;
+      white-space: nowrap !important;
+      text-align: left !important;
+    }
+
+    #takhmeenTable tbody td {
+      font-variant-numeric: tabular-nums !important;
+    }
+
+    #takhmeenTable tbody td:nth-child(2),
+    #takhmeenTable tbody td:nth-child(3) {
+      font-weight: 600 !important;
+      color: #1a1a1a !important;
+    }
+
+    #takhmeenTable tbody td:nth-child(1)::before { content: "YEAR" !important; }
+    #takhmeenTable tbody td:nth-child(2)::before { content: "BILLED" !important; }
+    #takhmeenTable tbody td:nth-child(3)::before { content: "PREV DUE" !important; }
+    #takhmeenTable tbody td:nth-child(4)::before { content: "COMMENTS" !important; }
 
     .result-header {
       flex-direction: column;
@@ -1055,6 +1239,9 @@
 
   <div class="container">
 
+    <!-- Notifications Banner -->
+    <div id="notificationsContainer" style="margin-bottom: 20px;"></div>
+
     <!-- Lookup Section -->
     <div id="lookupCard" class="lookup-card-wrapper">
       <div class="hero-section">
@@ -1089,6 +1276,10 @@
           <div>
             <h2 id="resName"></h2>
             <p class="muted" id="resMeta"></p>
+            <!-- Tracking Information -->
+            <div id="trackingInfo" style="margin-top: 12px; font-size: 12px; color: #666; line-height: 1.6;">
+              <span id="trackingMeta"></span>
+            </div>
           </div>
           <button class="secondary small" id="searchAgainBtn">🔄 Search Again</button>
         </div>
@@ -1120,6 +1311,37 @@
           <div class="value outstanding">₹<span id="statPending"></span></div>
           <div class="change negative">Still to receive</div>
         </div>
+        <div class="stat">
+          <div class="stat-icon">📊</div>
+          <div class="label">Previous Due</div>
+          <div class="value">₹<span id="statPreviousDue"></span></div>
+          <div class="change">Amount due from previous periods</div>
+        </div>
+      </div>
+
+      <!-- Takhmeen Contributions Table -->
+      <div class="card">
+        <h3 class="card-title">📋 <span>Takhmeen Contributions</span></h3>
+        <p class="card-subtitle">Your yearly contribution details and history</p>
+
+        <div class="table-responsive">
+          <table id="takhmeenTable">
+            <thead>
+              <tr>
+                <th>📅 Year</th>
+                <th style="text-align: right;">💵 Amount Billed</th>
+                <th style="text-align: right;">📊 Previous Due</th>
+                <th>📝 Comments</th>
+              </tr>
+            </thead>
+            <tbody id="takhmeenBody"></tbody>
+          </table>
+        </div>
+
+        <p class="muted" id="emptyTakhmeen" style="display:none;">
+          <strong>📭 No takhmeen records yet</strong>
+          Your contribution history will appear here.
+        </p>
       </div>
 
       <!-- Payment Receipts Table -->

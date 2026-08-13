@@ -239,9 +239,10 @@
     #usersTable tbody td:nth-child(3)::before { content: "MOBILE"; }
     #usersTable tbody td:nth-child(4)::before { content: "SECTOR"; }
     #usersTable tbody td:nth-child(5)::before { content: "BILLED"; }
-    #usersTable tbody td:nth-child(6)::before { content: "RECEIVED"; }
-    #usersTable tbody td:nth-child(7)::before { content: "PENDING"; }
-    #usersTable tbody td:nth-child(8)::before { content: "OUTSTANDING"; }
+    #usersTable tbody td:nth-child(6)::before { content: "PREV DUE"; }
+    #usersTable tbody td:nth-child(7)::before { content: "RECEIVED"; }
+    #usersTable tbody td:nth-child(8)::before { content: "PENDING"; }
+    #usersTable tbody td:nth-child(9)::before { content: "OUTSTANDING"; }
   }
 
   .upload-result {
@@ -964,13 +965,20 @@
 
   #usersTable th:nth-child(7),
   #usersTable td:nth-child(7) {
-    width: 10%;
-    min-width: 85px;
+    width: 9%;
+    min-width: 80px;
     text-align: right;
   }
 
   #usersTable th:nth-child(8),
   #usersTable td:nth-child(8) {
+    width: 9%;
+    min-width: 80px;
+    text-align: right;
+  }
+
+  #usersTable th:nth-child(9),
+  #usersTable td:nth-child(9) {
     width: 10%;
     min-width: 85px;
     text-align: right;
@@ -1517,9 +1525,10 @@
     #usersTable tbody td:nth-child(3)::before { content: "MOB" !important; }
     #usersTable tbody td:nth-child(4)::before { content: "SECT" !important; }
     #usersTable tbody td:nth-child(5)::before { content: "TAKH" !important; }
-    #usersTable tbody td:nth-child(6)::before { content: "RCV" !important; }
-    #usersTable tbody td:nth-child(7)::before { content: "PEND" !important; }
-    #usersTable tbody td:nth-child(8)::before { content: "OUT" !important; }
+    #usersTable tbody td:nth-child(6)::before { content: "PREV" !important; }
+    #usersTable tbody td:nth-child(7)::before { content: "RCV" !important; }
+    #usersTable tbody td:nth-child(8)::before { content: "PEND" !important; }
+    #usersTable tbody td:nth-child(9)::before { content: "OUT" !important; }
   }
 
   /* Drop Zone */
@@ -1594,6 +1603,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="users">👥 Users & Accounts</button>
       <button class="tab" data-tab="upload">📤 Data Upload</button>
+      <button class="tab" data-tab="notifications">🔔 Send Notifications</button>
     </div>
 
     <!-- Upload Section -->
@@ -1655,6 +1665,56 @@
       </div>
     </div>
 
+    <!-- Notifications Section -->
+    <div id="notifications" class="section">
+      <div class="card">
+        <h3 class="card-title">🔔 <span>Send Notification to All Users</span></h3>
+        <p class="card-subtitle">Send a message that will appear to users when they access the portal or app</p>
+
+        <form id="notificationForm" style="margin-bottom: 24px;">
+          <div style="margin-bottom: 16px;">
+            <label for="notificationTitle">📋 Notification Title</label>
+            <input
+              type="text"
+              id="notificationTitle"
+              placeholder="e.g., Important Update, Payment Reminder, System Maintenance"
+              maxlength="255"
+              required
+            >
+            <small style="color: var(--text-lighter);">Max 255 characters</small>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label for="notificationMessage">💬 Notification Message</label>
+            <textarea
+              id="notificationMessage"
+              placeholder="e.g., Please check your account for the latest payment status..."
+              rows="5"
+              required
+            ></textarea>
+            <small style="color: var(--text-lighter);">Markdown formatting supported</small>
+          </div>
+
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <button type="submit" id="sendNotificationBtn">🔔 Send to All Users</button>
+            <span id="notificationStatus" style="display: none; color: var(--green); font-weight: 600;"></span>
+            <span id="notificationError" style="display: none; color: #dc2626; font-weight: 600;"></span>
+          </div>
+        </form>
+
+        <div id="notificationResult" style="display: none; background: #dcfce7; border: 1.5px solid #86efac; border-radius: 8px; padding: 16px; margin-top: 16px;">
+          <p style="margin: 0; color: #16a34a; font-weight: 600;" id="notificationResultText"></p>
+        </div>
+      </div>
+
+      <!-- Recent Notifications -->
+      <div class="card">
+        <h3 class="card-title">📊 <span>Recent Notifications</span></h3>
+        <p class="card-subtitle">Last 10 notifications sent</p>
+        <div id="notificationsList" style="max-height: 500px; overflow-y: auto;"></div>
+      </div>
+    </div>
+
     <!-- Users Section -->
     <div id="users" class="section active">
       <div class="card">
@@ -1678,6 +1738,7 @@
                 <th class="sortable" data-sort="mobile" style="cursor: pointer;">📱 Mobile <span class="sort-arrow"></span></th>
                 <th class="sortable" data-sort="sector" style="cursor: pointer;">🏢 Sector <span class="sort-arrow"></span></th>
                 <th class="sortable" data-sort="total_billed" style="text-align: right; cursor: pointer;">💰 Takhmeen <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="previous_amount_due" style="text-align: right; cursor: pointer;">📊 Prev Due <span class="sort-arrow"></span></th>
                 <th class="sortable" data-sort="amount_received" style="text-align: right; cursor: pointer;">✅ Received <span class="sort-arrow"></span></th>
                 <th class="sortable" data-sort="amount_pending" style="text-align: right; cursor: pointer;">⏳ Pending <span class="sort-arrow"></span></th>
                 <th class="sortable" data-sort="outstanding" style="text-align: right; cursor: pointer;">⚠️ Outstanding <span class="sort-arrow"></span></th>
@@ -1708,6 +1769,7 @@
               <tr>
                 <th>📅 Period</th>
                 <th style="text-align: right;">💵 Billed</th>
+                <th style="text-align: right;">📊 Previous Due</th>
                 <th style="text-align: right;">✅ Paid</th>
                 <th>📆 Due Date</th>
                 <th>📊 Status</th>

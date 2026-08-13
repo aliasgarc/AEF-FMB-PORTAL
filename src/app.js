@@ -4,6 +4,8 @@ const path = require('path');
 
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/user');
+const notificationRoutes = require('./routes/notifications');
+const appUpdatesRoutes = require('./routes/app-updates');
 
 const app = express();
 
@@ -15,6 +17,17 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
   setHeaders: (res, path) => {
     if (path.endsWith('manifest.json')) {
       res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+    if (path.endsWith('.png')) {
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    }
+    if (path.endsWith('.svg')) {
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'public, max-age=604800');
     }
   }
 }));
@@ -26,6 +39,8 @@ app.use('/user', express.static(path.join(__dirname, '..', 'public', 'user')));
 // APIs
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/app', appUpdatesRoutes);
 
 // Root -> send people to the user portal by default
 app.get('/', (req, res) => {

@@ -52,11 +52,16 @@ class PWAManager {
       this.promptShown = true;
     });
 
-    // If no prompt after 4 seconds, show improved Android fallback
+    // If no prompt after 4 seconds, show device-specific fallback
     setTimeout(() => {
-      if (!this.promptShown && this.isAndroid && !this.isInstalledApp()) {
-        console.log('[PWA] No native prompt, showing improved Android banner');
-        this.showImprovedAndroidInstall();
+      if (!this.promptShown && !this.isInstalledApp()) {
+        if (this.isIOS) {
+          console.log('[PWA] iOS detected, showing install instructions');
+          this.showIOSInstallBanner();
+        } else if (this.isAndroid) {
+          console.log('[PWA] No native prompt, showing improved Android banner');
+          this.showImprovedAndroidInstall();
+        }
       }
     }, 4000);
 
@@ -90,24 +95,46 @@ class PWAManager {
     const banner = document.createElement('div');
     banner.id = 'pwa-install-prompt';
     banner.className = 'pwa-install-banner';
-    banner.innerHTML = `
-      <div class="pwa-install-content">
-        <div>
-          <strong>📱 Install App</strong>
-          <p>Get quick access to Payment Tracker on your device</p>
+
+    // Device-specific install prompt
+    if (this.isIOS) {
+      banner.innerHTML = `
+        <div class="pwa-install-content">
+          <div>
+            <strong>🍎 Add to Home Screen</strong>
+            <p>Quick access to AEF-FMB-Portal</p>
+          </div>
+          <div class="pwa-install-buttons">
+            <button id="pwa-install-btn" class="btn">Show Instructions</button>
+            <button id="pwa-close-btn" class="btn secondary">Later</button>
+          </div>
         </div>
-        <div class="pwa-install-buttons">
-          <button id="pwa-install-btn" class="btn">Install</button>
-          <button id="pwa-close-btn" class="btn secondary">Later</button>
+      `;
+    } else {
+      // Android/Desktop
+      banner.innerHTML = `
+        <div class="pwa-install-content">
+          <div>
+            <strong>📱 Install App</strong>
+            <p>Get quick access to Payment Tracker on your device</p>
+          </div>
+          <div class="pwa-install-buttons">
+            <button id="pwa-install-btn" class="btn">Install Now</button>
+            <button id="pwa-close-btn" class="btn secondary">Later</button>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }
 
     document.body.insertBefore(banner, document.body.firstChild);
 
-    // Install button handler
+    // Install button handler - device specific
     document.getElementById('pwa-install-btn').addEventListener('click', () => {
-      if (this.deferredPrompt) {
+      if (this.isIOS) {
+        // Show iOS instructions
+        this.showIOSInstallInstructions();
+      } else if (this.deferredPrompt) {
+        // Try native Android install
         this.deferredPrompt.prompt();
         this.deferredPrompt.userChoice.then((choiceResult) => {
           if (choiceResult.outcome === 'accepted') {
@@ -117,6 +144,9 @@ class PWAManager {
           }
           this.deferredPrompt = null;
         });
+      } else {
+        // Fallback for Android without native prompt
+        this.showImprovedAndroidInstall();
       }
     });
 
@@ -141,6 +171,111 @@ class PWAManager {
     const banner = document.getElementById('pwa-install-prompt');
     if (banner) {
       banner.style.display = 'none';
+    }
+  }
+
+  showIOSInstallInstructions() {
+    const modal = document.createElement('div');
+    modal.id = 'pwa-ios-install-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 20px;
+    `;
+
+    modal.innerHTML = `
+      <div style="background: white; border-radius: 16px; padding: 28px; max-width: 520px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <h2 style="color: #3c7441; margin: 0 0 24px 0; font-size: 22px;">🍎 Add to Home Screen</h2>
+
+        <div style="background: #f8fafc; border-left: 4px solid #3c7441; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+          <strong style="color: #3c7441; display: block; margin-bottom: 8px;">Using Safari</strong>
+          <p style="margin: 0; color: #666; font-size: 14px;">This works on iPhone, iPad, and iPod Touch</p>
+        </div>
+
+        <div style="color: #666; line-height: 1.8; margin-bottom: 24px;">
+          <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+            <span style="background: #3c7441; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 12px; font-weight: 700;">1</span>
+            <div><strong style="color: #1a1a1a;">Tap the Share button</strong><br/><span style="font-size: 13px;">Look for the upward arrow (↑) at the bottom of screen</span></div>
+          </div>
+          <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+            <span style="background: #3c7441; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 12px; font-weight: 700;">2</span>
+            <div><strong style="color: #1a1a1a;">Find "Add to Home Screen"</strong><br/><span style="font-size: 13px;">Scroll down in the popup menu</span></div>
+          </div>
+          <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+            <span style="background: #3c7441; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 12px; font-weight: 700;">3</span>
+            <div><strong style="color: #1a1a1a;">Tap "Add"</strong><br/><span style="font-size: 13px;">Choose the app name and tap Add button</span></div>
+          </div>
+          <div style="display: flex; align-items: flex-start;">
+            <span style="background: #3c7441; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 12px; font-weight: 700;">4</span>
+            <div><strong style="color: #1a1a1a;">Done! App is on home screen</strong><br/><span style="font-size: 13px;">Open it anytime like a regular app</span></div>
+          </div>
+        </div>
+
+        <div style="background: #e3f2fd; border: 1px solid #64b5f6; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+          <strong style="color: #1565c0; font-size: 14px;">💡 Must use Safari, not Chrome or Firefox</strong>
+        </div>
+
+        <button onclick="document.getElementById('pwa-ios-install-modal').remove()"
+                style="width: 100%; background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%); color: white; border: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 16px;">
+          Ready to Install! Open Safari
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  showIOSInstallBanner() {
+    const existingPrompt = document.getElementById('pwa-install-prompt');
+    if (existingPrompt) {
+      existingPrompt.style.display = 'flex';
+      return;
+    }
+
+    const banner = document.createElement('div');
+    banner.id = 'pwa-install-prompt';
+    banner.className = 'pwa-install-banner';
+    banner.innerHTML = `
+      <div class="pwa-install-content">
+        <div>
+          <strong>🍎 Add to Home Screen</strong>
+          <p>Quick access on your iPhone or iPad</p>
+        </div>
+        <div class="pwa-install-buttons">
+          <button id="pwa-ios-help-btn" class="btn">Show Me How</button>
+          <button id="pwa-close-btn" class="btn secondary">Later</button>
+        </div>
+      </div>
+    `;
+
+    document.body.insertBefore(banner, document.body.firstChild);
+
+    // Show instructions button
+    document.getElementById('pwa-ios-help-btn').addEventListener('click', () => {
+      this.showIOSInstallInstructions();
+    });
+
+    // Close button handler
+    document.getElementById('pwa-close-btn').addEventListener('click', () => {
+      this.hideInstallPrompt();
+      localStorage.setItem('pwa-install-dismissed', new Date().getTime().toString());
+    });
+
+    // Hide if dismissed recently
+    const dismissed = localStorage.getItem('pwa-install-dismissed');
+    if (dismissed) {
+      const daysSinceDismissed = (new Date().getTime() - parseInt(dismissed)) / (1000 * 60 * 60 * 24);
+      if (daysSinceDismissed < 7) {
+        banner.style.display = 'none';
+      }
     }
   }
 

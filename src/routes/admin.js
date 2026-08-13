@@ -100,13 +100,14 @@ router.get('/users', requireAdmin, async (req, res) => {
       SELECT
         u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector,
         COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0)::numeric(12,2) AS total_billed,
+        COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0)::numeric(12,2) AS previous_amount_due,
         COALESCE(SUM(pt.amt_rcv), 0)::numeric(12,2) AS amount_received,
         COALESCE(SUM(pt.amt_pending), 0)::numeric(12,2) AS amount_pending,
-        (COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding
+        (COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0) + COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding
       FROM fmb_its_tbl u
       LEFT JOIN fmb_takhmeen t ON t.hof_its = u.its_id
       LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = CAST(u.its_id AS INTEGER)
-      GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt
+      GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt, t.previous_amount_due
       ORDER BY COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) DESC, COALESCE(SUM(pt.amt_rcv), 0) DESC, COALESCE(SUM(pt.amt_pending), 0) DESC, outstanding DESC
     `);
     res.json({ users: result.rows });
@@ -124,9 +125,10 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
     const userResult = await db.query('SELECT * FROM fmb_its_tbl WHERE id = $1', [req.params.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ error: 'User not found.' });
 
-    const historyResult = await db.query(
-      'SELECT * FROM payment_records WHERE user_id = $1 ORDER BY created_at DESC',
-      [req.params.id]
+    // Fetch takhmeen data from fmb_takhmeen (same as user page)
+    const takhmeeResult = await db.query(
+      'SELECT id, takhmeen_yr, takhmeen_amt, comment, created_at, updated_at, COALESCE(CAST(previous_amount_due AS NUMERIC(12,2)), 0)::numeric(12,2) AS previous_amount_due FROM fmb_takhmeen WHERE hof_its = $1 ORDER BY takhmeen_yr DESC',
+      [userResult.rows[0].its_id]
     );
 
     // Fetch payment receipts (hof_its stores numeric ITS ID)
@@ -136,21 +138,23 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
     );
 
     const user = userResult.rows[0];
-    const history = historyResult.rows;
+    const takhmeen = takhmeeResult.rows;
     const payments = paymentsResult.rows;
-    const totalBilled = history.reduce((sum, r) => sum + Number(r.amount_billed), 0);
-    const totalPaid = history.reduce((sum, r) => sum + Number(r.amount_paid), 0);
+
+    // Calculate totals from fmb_takhmeen (same as user page)
+    const totalBilled = takhmeen.reduce((sum, t) => sum + Number(t.takhmeen_amt || 0), 0);
+    const totalPreviousDue = takhmeen.reduce((sum, t) => sum + Number(t.previous_amount_due || 0), 0);
     const totalReceived = payments.reduce((sum, p) => sum + Number(p.amt_rcv || 0), 0);
     const totalPending = payments.reduce((sum, p) => sum + Number(p.amt_pending || 0), 0);
 
     res.json({
       user,
-      history,
+      takhmeen,
       payments,
       summary: {
         totalBilled,
-        totalPaid,
-        outstanding: totalBilled - totalPaid,
+        totalPreviousDue,
+        outstanding: totalPreviousDue + totalBilled - totalReceived,
         totalReceived,
         totalPending
       }
