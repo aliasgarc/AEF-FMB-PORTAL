@@ -549,6 +549,79 @@ if (notificationForm) {
   loadRecentNotifications();
 }
 
+<<<<<<< HEAD
+=======
+// ========== NOTIFICATIONS SYSTEM ==========
+const notificationForm = document.getElementById('notificationForm');
+if (notificationForm) {
+  notificationForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById('notificationTitle').value.trim();
+    const message = document.getElementById('notificationMessage').value.trim();
+    const sendBtn = document.getElementById('sendNotificationBtn');
+    const statusEl = document.getElementById('notificationStatus');
+    const errorEl = document.getElementById('notificationError');
+    const resultDiv = document.getElementById('notificationResult');
+
+    if (!title || !message) {
+      errorEl.textContent = '❌ Title and message are required';
+      errorEl.style.display = 'block';
+      statusEl.style.display = 'none';
+      return;
+    }
+
+    sendBtn.disabled = true;
+    const originalText = sendBtn.innerHTML;
+    sendBtn.innerHTML = '<span class="loading-spinner"></span> Sending...';
+    statusEl.style.display = 'none';
+    errorEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/notifications/admin/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, message, adminId: 'admin' })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send notification');
+      }
+
+      // Show success
+      statusEl.textContent = `✅ ${data.message}`;
+      statusEl.style.display = 'block';
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `<p style="margin: 0; color: #16a34a; font-weight: 600;">✅ ${data.message}</p>`;
+
+      // Clear form
+      notificationForm.reset();
+
+      // Reload notifications list
+      loadRecentNotifications();
+
+      // Hide success after 5 seconds
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+        resultDiv.style.display = 'none';
+      }, 5000);
+    } catch (err) {
+      errorEl.textContent = `❌ ${err.message}`;
+      errorEl.style.display = 'block';
+      console.error('Notification error:', err);
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = originalText;
+    }
+  });
+
+  // Load recent notifications on page load
+  loadRecentNotifications();
+}
+
+>>>>>>> 83c02c49732c0e35b895e7ab0277f6cb4fd9ab98
 async function loadRecentNotifications() {
   const notificationsList = document.getElementById('notificationsList');
   if (!notificationsList) return;
