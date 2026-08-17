@@ -145,63 +145,63 @@ async function loadUsers() {
     const usersData = await usersRes.json();
     const statsData = await statsRes.json();
 
-  let users = usersData.users;
-  const stats = statsData;
+    let users = usersData.users;
+    const stats = statsData;
 
-  // Store all users for sorting
-  allUsers = users;
+    // Store all users for sorting
+    allUsers = users;
 
-  // Sort users based on current sort settings
-  users = sortUsers(users, currentSortColumn, sortDirection);
+    // Sort users based on current sort settings
+    users = sortUsers(users, currentSortColumn, sortDirection);
 
-  // Calculate totals from Takhmeen contribution data
-  const totalOutstanding = users.reduce((s, u) => s + Number(u.outstanding), 0);
-  const totalBilled = stats.users.totalBilled;
-  const totalPaid = stats.users.totalPaid;
+    // Calculate totals from Takhmeen contribution data
+    const totalOutstanding = users.reduce((s, u) => s + Number(u.outstanding), 0);
+    const totalBilled = stats.users.totalBilled;
+    const totalPaid = stats.users.totalPaid;
 
-  // Get payment receipt data
-  const totalReceived = stats.receipts.totalReceived;
-  const totalPending = stats.receipts.totalPending;
+    // Get payment receipt data
+    const totalReceived = stats.receipts.totalReceived;
+    const totalPending = stats.receipts.totalPending;
 
-  const statsRowEl = document.getElementById('statsRow');
-  if (!statsRowEl) {
-    console.error('Stats row element not found');
-    return;
-  }
+    const statsRowEl = document.getElementById('statsRow');
+    if (!statsRowEl) {
+      console.error('Stats row element not found');
+      return;
+    }
 
-  const safeUsers = stats?.users || {};
-  const safeTotalBilled = Number(safeUsers.totalBilled) || 0;
-  const safeTotalReceived = Number(safeUsers.totalPaid) || 0;
+    const safeUsers = stats?.users || {};
+    const safeTotalBilled = Number(safeUsers.totalBilled) || 0;
+    const safeTotalReceived = Number(safeUsers.totalPaid) || 0;
 
-  statsRowEl.innerHTML = `
-    <div class="stat">
-      <div class="stat-icon">👥</div>
-      <div class="label">Total Users</div>
-      <div class="value">${safeUsers.totalUsers || 0}</div>
-      <div class="change">Active accounts</div>
-    </div>
-    <div class="stat">
-      <div class="stat-icon">💰</div>
-      <div class="label">Total Takhmeen</div>
-      <div class="value success">₹${currency(safeTotalBilled)}</div>
-      <div class="change">Contribution amount</div>
-    </div>
-    <div class="stat">
-      <div class="stat-icon">✅</div>
-      <div class="label">Amount Received</div>
-      <div class="value success">₹${currency(safeTotalReceived)}</div>
-      <div class="change" style="color: var(--green);">+${safeTotalBilled > 0 ? Math.round((safeTotalReceived/safeTotalBilled)*100) : 0}% collected</div>
-    </div>
-    <div class="stat">
-      <div class="stat-icon">⚠️</div>
-      <div class="label">Pending Amount</div>
-      <div class="value outstanding">₹${currency(totalPending)}</div>
-      <div class="change negative">Still to receive</div>
-    </div>
-  `;
+    statsRowEl.innerHTML = `
+      <div class="stat">
+        <div class="stat-icon">👥</div>
+        <div class="label">Total Users</div>
+        <div class="value">${safeUsers.totalUsers || 0}</div>
+        <div class="change">Active accounts</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">💰</div>
+        <div class="label">Total Takhmeen</div>
+        <div class="value success">₹${currency(safeTotalBilled)}</div>
+        <div class="change">Contribution amount</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">✅</div>
+        <div class="label">Amount Received</div>
+        <div class="value success">₹${currency(safeTotalReceived)}</div>
+        <div class="change" style="color: var(--green);">+${safeTotalBilled > 0 ? Math.round((safeTotalReceived/safeTotalBilled)*100) : 0}% collected</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">⚠️</div>
+        <div class="label">Pending Amount</div>
+        <div class="value outstanding">₹${currency(totalPending)}</div>
+        <div class="change negative">Still to receive</div>
+      </div>
+    `;
 
-  document.getElementById('emptyState').style.display = users.length === 0 ? 'block' : 'none';
-  document.getElementById('userCount').innerHTML = `<strong>${users.length}</strong> total users • Last updated: just now`;
+    document.getElementById('emptyState').style.display = users.length === 0 ? 'block' : 'none';
+    document.getElementById('userCount').innerHTML = `<strong>${users.length}</strong> total users • Last updated: just now`;
 
     // Render users and setup sorting
     renderUsers(users);
@@ -549,79 +549,6 @@ if (notificationForm) {
   loadRecentNotifications();
 }
 
-<<<<<<< HEAD
-=======
-// ========== NOTIFICATIONS SYSTEM ==========
-const notificationForm = document.getElementById('notificationForm');
-if (notificationForm) {
-  notificationForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const title = document.getElementById('notificationTitle').value.trim();
-    const message = document.getElementById('notificationMessage').value.trim();
-    const sendBtn = document.getElementById('sendNotificationBtn');
-    const statusEl = document.getElementById('notificationStatus');
-    const errorEl = document.getElementById('notificationError');
-    const resultDiv = document.getElementById('notificationResult');
-
-    if (!title || !message) {
-      errorEl.textContent = '❌ Title and message are required';
-      errorEl.style.display = 'block';
-      statusEl.style.display = 'none';
-      return;
-    }
-
-    sendBtn.disabled = true;
-    const originalText = sendBtn.innerHTML;
-    sendBtn.innerHTML = '<span class="loading-spinner"></span> Sending...';
-    statusEl.style.display = 'none';
-    errorEl.style.display = 'none';
-
-    try {
-      const res = await fetch('/api/notifications/admin/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, message, adminId: 'admin' })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send notification');
-      }
-
-      // Show success
-      statusEl.textContent = `✅ ${data.message}`;
-      statusEl.style.display = 'block';
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = `<p style="margin: 0; color: #16a34a; font-weight: 600;">✅ ${data.message}</p>`;
-
-      // Clear form
-      notificationForm.reset();
-
-      // Reload notifications list
-      loadRecentNotifications();
-
-      // Hide success after 5 seconds
-      setTimeout(() => {
-        statusEl.style.display = 'none';
-        resultDiv.style.display = 'none';
-      }, 5000);
-    } catch (err) {
-      errorEl.textContent = `❌ ${err.message}`;
-      errorEl.style.display = 'block';
-      console.error('Notification error:', err);
-    } finally {
-      sendBtn.disabled = false;
-      sendBtn.innerHTML = originalText;
-    }
-  });
-
-  // Load recent notifications on page load
-  loadRecentNotifications();
-}
-
->>>>>>> 83c02c49732c0e35b895e7ab0277f6cb4fd9ab98
 async function loadRecentNotifications() {
   const notificationsList = document.getElementById('notificationsList');
   if (!notificationsList) return;
