@@ -172,13 +172,16 @@ async function loadUsers() {
     const safeUsers = stats?.users || {};
     const safeTotalBilled = Number(safeUsers.totalBilled) || 0;
     const safeTotalReceived = Number(safeUsers.totalPaid) || 0;
+    const usersWithTakhmeen = Number(safeUsers.usersWithTakhmeen) || 0;
+    const totalUsers = Number(safeUsers.totalUsers) || 0;
+    const takhmeenPercentage = totalUsers > 0 ? Math.round((usersWithTakhmeen / totalUsers) * 100) : 0;
 
     statsRowEl.innerHTML = `
       <div class="stat">
         <div class="stat-icon">👥</div>
         <div class="label">Total Users</div>
-        <div class="value">${safeUsers.totalUsers || 0}</div>
-        <div class="change">Active accounts</div>
+        <div class="value">${totalUsers}</div>
+        <div class="change" style="font-size: 14px; font-weight: 600; color: #3c7441;">📊 ${usersWithTakhmeen} with Takhmeen <span style="background: linear-gradient(135deg, #3c7441, #60a472); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;">(${takhmeenPercentage}%)</span></div>
       </div>
       <div class="stat">
         <div class="stat-icon">💰</div>
