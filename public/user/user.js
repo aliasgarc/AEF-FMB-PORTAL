@@ -35,7 +35,98 @@ async function checkForAppUpdate(itsId) {
   }
 }
 
+function displayForceUpdateModal(updateData) {
+  // Remove any existing modal
+  const existing = document.getElementById('forceUpdateModal');
+  if (existing) existing.remove();
+
+  // Create modal overlay and content
+  const modal = document.createElement('div');
+  modal.id = 'forceUpdateModal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+  `;
+
+  let featuresHTML = '';
+  if (updateData.updateFeatures && updateData.updateFeatures.length > 0) {
+    const featuresText = updateData.updateFeatures
+      .map(f => `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span style="color: #16a34a; font-weight: bold;">✓</span>
+        <span>${escapeHtml(f)}</span>
+      </div>`)
+      .join('');
+
+    featuresHTML = `
+      <div style="margin-top: 16px; background: #f8fafc; padding: 16px; border-radius: 8px;">
+        <strong style="display: block; margin-bottom: 12px; color: #1a1a1a;">What's New in v${updateData.currentVersion}:</strong>
+        ${featuresText}
+      </div>
+    `;
+  }
+
+  modal.innerHTML = `
+    <div style="background: white; border-radius: 16px; padding: 32px; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
+        <h2 style="margin: 0 0 8px 0; color: #1a1a1a;">Important Update Required</h2>
+        <p style="margin: 0; color: #666; font-size: 14px;">Please update to continue using the app</p>
+      </div>
+
+      <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+        <div style="font-size: 13px; color: #1e40af;">
+          <strong>Current version:</strong> v${escapeHtml(updateData.userVersion)}<br>
+          <strong>New version:</strong> v${escapeHtml(updateData.currentVersion)}
+        </div>
+      </div>
+
+      <p style="margin: 0 0 20px 0; color: #555; font-size: 14px;">
+        ${escapeHtml(updateData.updateMessage)}
+      </p>
+
+      ${featuresHTML}
+
+      <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+        <button onclick="location.reload();" style="
+          width: 100%;
+          background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+          color: white;
+          border: none;
+          padding: 14px 20px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 16px;
+          transition: all 0.2s;
+        " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+          🔄 Update Now
+        </button>
+        <p style="margin: 12px 0 0 0; text-align: center; color: #999; font-size: 12px;">
+          This update is required for security and stability
+        </p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
 function displayUpdateBanner(updateData) {
+  // For required updates, show force-update modal instead
+  if (updateData.updateRequired) {
+    displayForceUpdateModal(updateData);
+    return;
+  }
+
   const container = document.getElementById('notificationsContainer');
   if (!container) return;
 
