@@ -54,6 +54,11 @@ router.get('/stats', requireAdmin, async (req, res) => {
       SELECT COALESCE(COUNT(*), 0) AS total_users FROM fmb_its_tbl
     `);
 
+    // Get count of users with takhmeen data
+    const usersWithTakhmeen = await db.query(`
+      SELECT COALESCE(COUNT(DISTINCT hof_its), 0) AS users_with_takhmeen FROM fmb_takhmeen
+    `);
+
     // Get total Takhmeen from all records (sum of all takhmeen_amt)
     const takhmeeResult = await db.query(`
       SELECT COALESCE(SUM(CAST(NULLIF(takhmeen_amt, '') AS NUMERIC(12,2))), 0)::numeric(12,2) AS total_billed
@@ -70,12 +75,14 @@ router.get('/stats', requireAdmin, async (req, res) => {
     `);
 
     const users = usersResult.rows[0];
+    const takhmeenUsers = usersWithTakhmeen.rows[0];
     const takhmeen = takhmeeResult.rows[0];
     const receipts = receiptsResult.rows[0];
 
     res.json({
       users: {
         totalUsers: parseInt(users.total_users),
+        usersWithTakhmeen: parseInt(takhmeenUsers.users_with_takhmeen),
         totalBilled: parseFloat(takhmeen.total_billed),
         totalPaid: parseFloat(receipts.total_received)
       },
