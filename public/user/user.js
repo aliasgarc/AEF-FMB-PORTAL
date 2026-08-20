@@ -41,45 +41,73 @@ function displayUpdateBanner(updateData) {
 
   let bannerColor = '#f59e0b'; // orange
   let icon = '📦';
+  let title = 'Update Available';
 
   if (updateData.updateRequired) {
     bannerColor = '#dc2626'; // red - critical
     icon = '⚠️';
+    title = 'Important Update Required';
+  }
+
+  // Build features list HTML
+  let featuresHTML = '';
+  if (updateData.updateFeatures && updateData.updateFeatures.length > 0) {
+    const featuresText = updateData.updateFeatures
+      .map(f => `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+        <span style="color: #16a34a;">✓</span>
+        <span>${escapeHtml(f)}</span>
+      </div>`)
+      .join('');
+
+    featuresHTML = `
+      <div style="margin-top: 12px; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; font-size: 13px;">
+        <strong style="display: block; margin-bottom: 8px;">What's New in v${updateData.currentVersion}:</strong>
+        ${featuresText}
+      </div>
+    `;
   }
 
   const banner = document.createElement('div');
   banner.className = 'notification-banner';
   banner.style.background = `linear-gradient(135deg, ${bannerColor} 0%, ${bannerColor}dd 100%)`;
   banner.innerHTML = `
-    <h4>${icon} App Update Available</h4>
-    <p>${updateData.updateMessage}</p>
-    ${updateData.updateFeatures && updateData.updateFeatures.length > 0 ? `
-      <div style="margin-top: 8px; font-size: 12px;">
-        <strong>What's New:</strong><br>
-        ${updateData.updateFeatures.map(f => `• ${f}`).join('<br>')}
+    <div style="display: flex; gap: 12px; align-items: flex-start;">
+      <div style="font-size: 24px; flex-shrink: 0;">${icon}</div>
+      <div style="flex-grow: 1;">
+        <h4 style="margin: 0 0 6px 0;">${title}</h4>
+        <p style="margin: 0 0 8px 0; font-size: 14px;">${escapeHtml(updateData.updateMessage)}</p>
+        <div style="font-size: 12px; opacity: 0.9;">
+          Current: v${updateData.userVersion} → Latest: v${updateData.currentVersion}
+        </div>
+        ${featuresHTML}
+        <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button onclick="location.reload();" style="
+            background: white;
+            color: ${updateData.updateRequired ? '#dc2626' : '#f59e0b'};
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+          " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            🔄 Update Now
+          </button>
+          ${!updateData.updateRequired ? `
+            <button onclick="this.closest('[class*=notification]').style.display='none'" style="
+              background: rgba(255,255,255,0.2);
+              color: white;
+              border: none;
+              padding: 10px 20px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+            ">Later</button>
+          ` : ''}
+        </div>
       </div>
-    ` : ''}
-    <div style="margin-top: 12px;">
-      <button onclick="location.reload();" style="
-        background: white;
-        color: ${updateData.updateRequired ? '#dc2626' : '#f59e0b'};
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 600;
-      ">🔄 Refresh to Update</button>
-      <button onclick="this.parentElement.parentElement.style.display='none'" style="
-        background: rgba(255,255,255,0.2);
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-left: 8px;
-      ">Later</button>
     </div>
-    <button class="close-btn" onclick="this.parentElement.style.display='none';">✕</button>
   `;
 
   container.insertBefore(banner, container.firstChild);
