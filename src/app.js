@@ -6,6 +6,7 @@ const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/user');
 const notificationRoutes = require('./routes/notifications');
 const appUpdatesRoutes = require('./routes/app-updates');
+const appAnalyticsRoutes = require('./routes/app-analytics');
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/app', appUpdatesRoutes);
+app.use('/api/app-analytics', appAnalyticsRoutes);
 
 // Root -> send people to the user portal by default
 app.get('/', (req, res) => {

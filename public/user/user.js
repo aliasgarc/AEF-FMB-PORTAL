@@ -490,6 +490,8 @@ function renderResult(data) {
   checkForAppUpdate(currentItsId);
   if (window.PWAUtils) {
     PWAUtils.startPeriodicUpdateCheck(APP_VERSION, currentItsId, 'user', 300000);
+    // Track installation for analytics
+    PWAUtils.trackInstallation(currentItsId, APP_VERSION);
   }
 
   // Check and request notification permission

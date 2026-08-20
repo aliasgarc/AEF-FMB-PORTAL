@@ -129,10 +129,15 @@ const PWAUtils = {
    * @param {string} currentVersion - App version
    */
   async trackInstallation(itsId, currentVersion) {
+    if (!itsId) {
+      console.warn('[PWA] Cannot track installation: no itsId provided');
+      return;
+    }
+
     try {
       const status = this.getInstallationStatus();
 
-      await fetch('/api/app-analytics/install', {
+      const response = await fetch('/api/app-analytics/install', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,9 +148,12 @@ const PWAUtils = {
         })
       });
 
-      console.log('[PWA] Installation tracked');
+      if (response.ok) {
+        console.log('[PWA] Installation tracked');
+      }
     } catch (err) {
       console.warn('[PWA] Failed to track installation:', err);
+      // Silently fail - don't interrupt user experience
     }
   },
 
