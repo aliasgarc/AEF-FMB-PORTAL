@@ -1604,6 +1604,7 @@
       <button class="tab active" data-tab="users">👥 Users & Accounts</button>
       <button class="tab" data-tab="upload">📤 Data Upload</button>
       <button class="tab" data-tab="notifications">🔔 Send Notifications</button>
+      <button class="tab" data-tab="analytics">📊 PWA Analytics</button>
     </div>
 
     <!-- Upload Section -->
@@ -1802,6 +1803,51 @@
             </thead>
             <tbody id="detailBody"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics Section -->
+    <div id="analytics" class="section">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+          <div>
+            <h3 class="card-title" style="margin: 0 0 8px 0;">📊 <span>PWA Analytics Dashboard</span></h3>
+            <p class="card-subtitle" style="margin: 0;">Installation metrics and version distribution</p>
+          </div>
+          <button class="secondary small" id="refreshAnalytics" style="cursor: pointer;">🔄 Refresh</button>
+        </div>
+
+        <!-- Stats Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+          <div style="background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%); padding: 20px; border-radius: 12px; color: white;">
+            <div style="font-size: 32px; font-weight: bold;" id="statInstallationsToday">-</div>
+            <div style="font-size: 12px; opacity: 0.9;">Installations Today</div>
+          </div>
+          <div style="background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%); padding: 20px; border-radius: 12px; color: white;">
+            <div style="font-size: 32px; font-weight: bold;" id="statTotalInstallations">-</div>
+            <div style="font-size: 12px; opacity: 0.9;">Total Installations</div>
+          </div>
+          <div style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); padding: 20px; border-radius: 12px; color: white;">
+            <div style="font-size: 32px; font-weight: bold;" id="statActiveUsers">-</div>
+            <div style="font-size: 12px; opacity: 0.9;">Active (24h)</div>
+          </div>
+        </div>
+
+        <!-- Version Distribution -->
+        <div style="margin-bottom: 24px;">
+          <h4 style="margin: 0 0 16px 0; color: #1a1a1a;">📱 Version Distribution</h4>
+          <div id="versionDistribution" style="background: #f8fafc; border-radius: 8px; padding: 16px;">
+            <div style="text-align: center; color: #999; padding: 20px;">Loading...</div>
+          </div>
+        </div>
+
+        <!-- Installation Methods -->
+        <div>
+          <h4 style="margin: 0 0 16px 0; color: #1a1a1a;">🌐 Installation Methods</h4>
+          <div id="installationMethods" style="background: #f8fafc; border-radius: 8px; padding: 16px;">
+            <div style="text-align: center; color: #999; padding: 20px;">Loading...</div>
+          </div>
         </div>
       </div>
     </div>

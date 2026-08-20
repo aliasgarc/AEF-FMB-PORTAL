@@ -106,6 +106,7 @@ async function init() {
   });
 
   await loadUsers();
+  await loadAnalytics();
 
   // Start periodic update checking (every 5 minutes)
   if (window.PWAUtils && me && me.admin && me.admin.id) {
@@ -574,4 +575,92 @@ async function loadRecentNotifications() {
     notificationsList.innerHTML = '<p style="color: #dc2626; padding: 20px;">Failed to load notifications</p>';
   }
 }
+
+// ========== ANALYTICS DASHBOARD ==========
+async function loadAnalytics() {
+  try {
+    const res = await fetchWithTimeout('/api/app-analytics/stats');
+    if (!res.ok) throw new Error('Failed to fetch analytics');
+
+    const stats = await res.json();
+
+    // Update stats
+    document.getElementById('statInstallationsToday').textContent = stats.installationsToday || 0;
+    document.getElementById('statTotalInstallations').textContent = stats.totalInstallations || 0;
+    document.getElementById('statActiveUsers').textContent = stats.activeUsers24h || 0;
+
+    // Render version distribution
+    const versionDiv = document.getElementById('versionDistribution');
+    if (stats.topVersions && stats.topVersions.length > 0) {
+      const maxCount = Math.max(...stats.topVersions.map(v => v.count));
+      versionDiv.innerHTML = stats.topVersions.map(v => {
+        const percentage = Math.round((v.count / maxCount) * 100);
+        return `
+          <div style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <strong>v${v.app_version}</strong>
+              <span style="color: #666; font-size: 12px;">${v.count} users (${Math.round((v.count / (stats.totalInstallations || 1)) * 100)}%)</span>
+            </div>
+            <div style="width: 100%; height: 24px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+              <div style="
+                width: ${percentage}%;
+                height: 100%;
+                background: linear-gradient(90deg, #3c7441 0%, #5a9b62 100%);
+                border-radius: 4px;
+                transition: width 0.3s ease;
+              "></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      versionDiv.innerHTML = '<div style="color: #999; padding: 20px; text-align: center;">No data yet</div>';
+    }
+
+    // Render installation methods
+    const methodsDiv = document.getElementById('installationMethods');
+    if (stats.installationMethods && stats.installationMethods.length > 0) {
+      methodsDiv.innerHTML = stats.installationMethods.map(m => {
+        const icons = {
+          'web': '🌐',
+          'standalone': '📱',
+          'iOS': '🍎',
+          'Android': '🤖',
+          'display-mode': '💻'
+        };
+        const icon = icons[m.detection_method] || '?';
+        return `
+          <div style="
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 4px solid #3c7441;
+          ">
+            <span style="font-size: 20px; margin-right: 12px;">${icon}</span>
+            <div style="flex-grow: 1;">
+              <strong style="text-transform: capitalize;">${m.detection_method}</strong>
+              <div style="font-size: 12px; color: #999;">${m.count} users</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      methodsDiv.innerHTML = '<div style="color: #999; padding: 20px; text-align: center;">No data yet</div>';
+    }
+  } catch (err) {
+    console.error('Failed to load analytics:', err);
+    document.getElementById('versionDistribution').innerHTML = '<p style="color: #dc2626; padding: 20px;">Failed to load analytics</p>';
+  }
+}
+
+// Load analytics when analytics tab is visible
+window.addEventListener('load', () => {
+  const refreshBtn = document.getElementById('refreshAnalytics');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', loadAnalytics);
+  }
+});
 
