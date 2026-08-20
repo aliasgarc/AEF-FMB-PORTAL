@@ -213,7 +213,7 @@ async function loadUsers() {
     console.error('Load users error:', err);
     const errorEl = document.createElement('div');
     errorEl.className = 'error-box';
-    errorEl.innerHTML = `<strong>Failed to load data:</strong> ${err.message}<br>
+    errorEl.innerHTML = `<strong>Failed to load data:</strong> ${escapeHtml(err.message)}<br>
       <button onclick="location.reload()" class="btn small" style="margin-top: 12px;">🔄 Retry</button>`;
     document.querySelector('.container')?.insertBefore(errorEl, document.querySelector('.container')?.firstChild);
   }
@@ -525,7 +525,7 @@ if (notificationForm) {
       statusEl.textContent = `✅ ${data.message}`;
       statusEl.style.display = 'block';
       resultDiv.style.display = 'block';
-      resultDiv.innerHTML = `<p style="margin: 0; color: #16a34a; font-weight: 600;">✅ ${data.message}</p>`;
+      resultDiv.innerHTML = `<p style="margin: 0; color: #16a34a; font-weight: 600;">✅ ${escapeHtml(data.message)}</p>`;
 
       // Clear form
       notificationForm.reset();
