@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const { requireAdmin } = require('../auth');
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ router.get('/:itsId', async (req, res) => {
 });
 
 // POST /api/admin/notifications - Create and send notification to all users
-router.post('/admin/send', async (req, res) => {
+router.post('/admin/send', requireAdmin, async (req, res) => {
   try {
     const { title, message, adminId } = req.body;
 
