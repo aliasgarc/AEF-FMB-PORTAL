@@ -486,8 +486,11 @@ function renderResult(data) {
   // Start periodic notification checks (every 30 seconds)
   startPeriodicNotificationCheck(currentItsId);
 
-  // Check for app updates
+  // Check for app updates (initial + periodic every 5 minutes)
   checkForAppUpdate(currentItsId);
+  if (window.PWAUtils) {
+    PWAUtils.startPeriodicUpdateCheck(APP_VERSION, currentItsId, 'user', 300000);
+  }
 
   // Check and request notification permission
   checkAndRequestNotificationPermission(currentItsId);

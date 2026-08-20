@@ -55,6 +55,9 @@ if (loginForm) {
 }
 
 // ---------- Dashboard page ----------
+// App version for update checking
+const APP_VERSION = '1.2.0';
+
 const usersBody = document.getElementById('usersBody');
 if (usersBody) {
   init();
@@ -103,6 +106,11 @@ async function init() {
   });
 
   await loadUsers();
+
+  // Start periodic update checking (every 5 minutes)
+  if (window.PWAUtils && me && me.admin && me.admin.id) {
+    PWAUtils.startPeriodicUpdateCheck(APP_VERSION, me.admin.id, 'admin', 300000);
+  }
 }
 
 async function loadUsers() {
