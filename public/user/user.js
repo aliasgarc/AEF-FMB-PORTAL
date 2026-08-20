@@ -112,7 +112,6 @@ async function startPeriodicNotificationCheck(itsId) {
     checkNotificationsViaServiceWorker(itsId);
   }, 30 * 1000);
 
-  console.log('✅ Periodic notification check started (every 30s)');
 }
 
 async function checkNotificationsViaServiceWorker(itsId) {
@@ -135,7 +134,6 @@ async function checkNotificationsViaServiceWorker(itsId) {
     if (data.notifications && data.unreadCount > 0) {
       data.notifications.forEach(notif => {
         if (notif.is_unread && !localStorage.getItem(`notif_shown_${notif.id}`)) {
-          console.log(`[App] New notification: ${notif.title}`);
           // Show in-app banner
           displayNotificationBanner({
             title: notif.title,
@@ -181,17 +179,14 @@ function displayNotificationBanner(notif) {
 
 async function requestNotificationPermission() {
   if (!('Notification' in window)) {
-    console.log('⚠️ Browser does not support notifications');
     return false;
   }
 
   if (Notification.permission === 'granted') {
-    console.log('✅ Notifications already permitted');
     return true;
   }
 
   if (Notification.permission === 'denied') {
-    console.log('❌ Notifications blocked by user');
     return false;
   }
 
@@ -199,10 +194,8 @@ async function requestNotificationPermission() {
   try {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-      console.log('✅ Notification permission granted');
       return true;
     } else {
-      console.log('❌ Notification permission denied');
       return false;
     }
   } catch (err) {
@@ -213,7 +206,6 @@ async function requestNotificationPermission() {
 
 async function registerForPushNotifications(itsId) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    console.log('⚠️ Push notifications not supported');
     return false;
   }
 
@@ -222,7 +214,6 @@ async function registerForPushNotifications(itsId) {
     const registration = await navigator.serviceWorker.register('/service-worker.js', {
       scope: '/'
     });
-    console.log('✅ Service Worker registered for push');
 
     // Subscribe to push notifications
     // Note: This is a simplified implementation
@@ -234,7 +225,6 @@ async function registerForPushNotifications(itsId) {
       if (hasPermission) {
         // Store preference in localStorage
         localStorage.setItem(`notifications_enabled_${itsId}`, 'true');
-        console.log('✅ Push notifications enabled for user');
         return true;
       }
     } catch (err) {

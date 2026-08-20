@@ -95,9 +95,7 @@ async function init() {
   const combinedForm = document.getElementById('uploadCombinedForm');
   if (combinedForm) {
     combinedForm.addEventListener('submit', handleCombinedUpload);
-    console.log('✓ Combined upload form listener attached');
   } else {
-    console.warn('⚠️ uploadCombinedForm element not found');
   }
 
   document.getElementById('closeDetail').addEventListener('click', () => {
@@ -455,9 +453,6 @@ function setupDragDrop(dropZoneId, fileInputId) {
 // Initialize drag-drop when page loads
 if (document.getElementById('combinedDropZone')) {
   setupDragDrop('combinedDropZone', 'combinedFileInput');
-  console.log('✓ Combined upload drop zone initialized');
-} else {
-  console.warn('⚠️ combinedDropZone element not found');
 }
 
 // ========== NOTIFICATIONS SYSTEM ==========
@@ -570,4 +565,3 @@ async function loadRecentNotifications() {
   }
 }
 
-console.log('✓ Notifications system initialized');
