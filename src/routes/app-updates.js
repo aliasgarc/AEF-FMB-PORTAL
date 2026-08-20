@@ -4,8 +4,8 @@ const config = require('../config/config');
 
 const router = express.Router();
 
-// Current app version - update this when deploying
-const CURRENT_VERSION = '1.2.0'; // Major.Minor.Patch
+// Current app version (from centralized config)
+const CURRENT_VERSION = config.APP_VERSION;
 
 // GET /api/app/version - Get current app version
 router.get('/version', (req, res) => {

@@ -1,5 +1,8 @@
 // Centralized configuration for the application
 module.exports = {
+  // Application version - update on each release
+  APP_VERSION: process.env.APP_VERSION || '1.2.0',
+
   // File uploads
   MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || 10 * 1024 * 1024, // 10 MB default
 
@@ -13,6 +16,9 @@ module.exports = {
   NOTIFICATIONS_ADMIN_LIMIT: process.env.NOTIFICATIONS_ADMIN_LIMIT || 100,
   APP_UPDATES_LIMIT: process.env.APP_UPDATES_LIMIT || 50,
   USERS_LIMIT: process.env.USERS_LIMIT || 10000,
+
+  // PWA & Update checking
+  VERSION_CHECK_INTERVAL: process.env.VERSION_CHECK_INTERVAL || 300000, // 5 minutes
 
   // Feature flags
   ENABLE_DEBUG_LOGS: process.env.NODE_ENV !== 'production',

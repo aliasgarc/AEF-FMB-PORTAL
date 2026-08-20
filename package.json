@@ -1,6 +1,6 @@
 {
   "name": "saas-payment-tracker",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Admin payment/dues tracker with public user lookup portal. Express + Neon Postgres, deployable on Vercel.",
   "main": "server.js",
   "scripts": {
