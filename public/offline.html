@@ -4,105 +4,97 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#3c7441">
-  <title>Offline — Payment Tracker</title>
+  <title>Offline — FMB Payment Portal</title>
   <link rel="stylesheet" href="/shared.css">
   <style>
     body {
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      background: linear-gradient(135deg, #f8fafc 0%, #e8f3eb 100%);
-      padding: 20px;
-      text-align: center;
+      margin: 0;
+      background: linear-gradient(135deg, #f8fafc 0%, #f0f4f8 100%);
     }
 
     .offline-container {
+      text-align: center;
+      padding: 40px 24px;
       max-width: 500px;
       background: white;
-      border-radius: 12px;
-      padding: 40px 32px;
-      box-shadow: 0 2px 8px rgba(60,116,65,0.08);
-      border-top: 3px solid #3c7441;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
     }
 
     .offline-icon {
-      font-size: 64px;
+      font-size: 72px;
       margin-bottom: 24px;
-      display: inline-block;
+      animation: pulse 2s infinite;
     }
 
-    .offline-container h1 {
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    .offline-title {
       font-size: 28px;
+      font-weight: 700;
       color: #1a1a1a;
-      margin: 0 0 12px 0;
-      font-weight: 600;
+      margin: 0 0 16px 0;
     }
 
-    .offline-container p {
-      color: #666;
+    .offline-message {
       font-size: 16px;
+      color: #666;
       line-height: 1.6;
       margin: 0 0 24px 0;
     }
 
-    .offline-tips {
-      background: linear-gradient(135deg, rgba(60,116,65,0.08), rgba(90,155,98,0.05));
-      border: 1px solid rgba(60,116,65,0.15);
-      border-radius: 8px;
+    .offline-details {
+      background: #f8fafc;
+      border-left: 4px solid #3c7441;
       padding: 16px;
-      margin-bottom: 24px;
+      border-radius: 8px;
+      margin-bottom: 28px;
       text-align: left;
-    }
-
-    .offline-tips h3 {
-      color: #3c7441;
       font-size: 14px;
-      margin: 0 0 12px 0;
-      font-weight: 600;
+      color: #555;
     }
 
-    .offline-tips ul {
+    .offline-details h3 {
+      margin: 0 0 12px 0;
+      color: #3c7441;
+      font-size: 16px;
+    }
+
+    .offline-details ul {
       margin: 0;
       padding-left: 20px;
-      list-style: none;
     }
 
-    .offline-tips li {
-      color: #666;
-      font-size: 14px;
+    .offline-details li {
       margin-bottom: 8px;
-      position: relative;
-      padding-left: 20px;
-    }
-
-    .offline-tips li:before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: #3c7441;
-      font-weight: bold;
-    }
-
-    .offline-tips li:last-child {
-      margin-bottom: 0;
+      color: #666;
     }
 
     .offline-actions {
       display: flex;
       gap: 12px;
-      flex-wrap: wrap;
       justify-content: center;
+      flex-wrap: wrap;
     }
 
     .btn {
       padding: 12px 24px;
-      border-radius: 6px;
       border: none;
-      font-size: 14px;
+      border-radius: 8px;
       font-weight: 600;
       cursor: pointer;
+      font-size: 14px;
       transition: all 0.3s ease;
     }
 
@@ -113,100 +105,137 @@
 
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(60,116,65,0.25);
+      box-shadow: 0 8px 20px rgba(60, 116, 65, 0.3);
     }
 
     .btn-secondary {
-      background: #f0f0f0;
-      color: #1a1a1a;
+      background: white;
+      color: #3c7441;
+      border: 2px solid #3c7441;
     }
 
     .btn-secondary:hover {
-      background: #e8e8e8;
+      background: #f8fafc;
     }
 
-    @media (max-width: 640px) {
-      .offline-container {
-        padding: 32px 20px;
-      }
+    .timestamp {
+      font-size: 12px;
+      color: #999;
+      margin-top: 20px;
+    }
 
-      .offline-container h1 {
-        font-size: 24px;
-      }
+    .connection-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 24px;
+      font-size: 14px;
+    }
 
-      .offline-icon {
-        font-size: 48px;
-      }
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: blink 1.5s infinite;
+    }
 
-      .offline-actions {
-        flex-direction: column;
+    @keyframes blink {
+      0%, 49%, 100% {
+        opacity: 1;
       }
+      50% {
+        opacity: 0.5;
+      }
+    }
 
-      .btn {
-        width: 100%;
-      }
+    .status-indicator.online {
+      background: #16a34a;
+      animation: none;
     }
   </style>
 </head>
 <body>
   <div class="offline-container">
     <div class="offline-icon">📡</div>
-    <h1>No Internet Connection</h1>
-    <p>You're currently offline. Some features may not be available until your connection is restored.</p>
 
-    <div class="offline-tips">
-      <h3>While you wait:</h3>
+    <h1 class="offline-title">You're Offline</h1>
+
+    <p class="offline-message">
+      We couldn't connect to the internet. You can still access cached content.
+    </p>
+
+    <div class="offline-details">
+      <h3>What You Can Do:</h3>
       <ul>
-        <li>Check your internet connection</li>
-        <li>Try turning WiFi off and on</li>
-        <li>Move closer to your router</li>
-        <li>Refresh the page when reconnected</li>
+        <li>✅ View previously loaded pages and data</li>
+        <li>✅ Check cached payment history</li>
+        <li>✅ Review cached account information</li>
+        <li>❌ Upload new files or make changes</li>
+        <li>❌ Fetch real-time data from the server</li>
       </ul>
     </div>
 
     <div class="offline-actions">
-      <button class="btn btn-primary" onclick="window.location.reload()">🔄 Refresh Page</button>
-      <button class="btn btn-secondary" onclick="goHome()">🏠 Go Home</button>
+      <button class="btn btn-primary" onclick="location.reload()">
+        🔄 Try Again
+      </button>
+      <button class="btn btn-secondary" onclick="goHome()">
+        🏠 Go Home
+      </button>
     </div>
 
-    <p style="font-size: 12px; color: #999; margin-top: 24px; margin-bottom: 0;">
-      Payment Tracker v1.0 • Offline Mode Active
-    </p>
+    <div class="connection-status">
+      <div class="status-indicator" id="statusIndicator"></div>
+      <span id="statusText">No internet connection</span>
+    </div>
+
+    <div class="timestamp">
+      Last attempt: <span id="timestamp"></span>
+    </div>
   </div>
 
   <script>
+    // Set timestamp
+    document.getElementById('timestamp').textContent = new Date().toLocaleTimeString();
+
+    // Monitor connection status
+    function updateConnectionStatus() {
+      const indicator = document.getElementById('statusIndicator');
+      const statusText = document.getElementById('statusText');
+
+      if (navigator.onLine) {
+        indicator.classList.add('online');
+        statusText.textContent = '🟢 Connection restored!';
+        setTimeout(() => {
+          location.reload();
+        }, 1500);
+      } else {
+        indicator.classList.remove('online');
+        statusText.textContent = '🔴 No internet connection';
+      }
+    }
+
+    // Check connection status periodically
+    setInterval(updateConnectionStatus, 3000);
+
+    // Listen for connection changes
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    // Go to home page
     function goHome() {
-      // Try to go to the appropriate home page based on the current path
-      if (window.location.pathname.includes('/admin/')) {
-        window.location.href = '/admin/login.html';
-      } else if (window.location.pathname.includes('/user/')) {
-        window.location.href = '/user/';
+      // Detect if user is admin or regular user based on referrer
+      const referrer = document.referrer;
+      if (referrer.includes('/admin')) {
+        window.location.href = '/admin/';
       } else {
         window.location.href = '/user/';
       }
     }
 
-    // Check connection status
-    window.addEventListener('online', () => {
-      console.log('[Offline] Connection restored');
-      document.body.style.background = 'linear-gradient(135deg, #c8f7e8 0%, #d4f4d4 100%)';
-      const container = document.querySelector('.offline-container');
-      if (container) {
-        container.style.borderTopColor = '#22c55e';
-        container.innerHTML = `
-          <div class="offline-icon">✅</div>
-          <h1>Connection Restored!</h1>
-          <p>Your connection is back online. Refresh to sync your data.</p>
-          <div class="offline-actions">
-            <button class="btn btn-primary" onclick="window.location.reload()" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">🔄 Refresh Now</button>
-          </div>
-        `;
-      }
-    });
-
-    window.addEventListener('offline', () => {
-      console.log('[Offline] Connection lost');
-    });
+    // Initial status check
+    updateConnectionStatus();
   </script>
 </body>
 </html>
