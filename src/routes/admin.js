@@ -1,11 +1,12 @@
 const express = require('express');
 const multer = require('multer');
 const db = require('../db');
+const config = require('../config/config');
 const { verifyAdminCredentials, issueToken, setAuthCookie, clearAuthCookie, requireAdmin } = require('../auth');
 const { parseCombinedExcel } = require('../utils/parsers');
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.MAX_FILE_SIZE } });
 
 // ---------------------------------------------------------------
 // POST /api/admin/login
@@ -324,8 +325,8 @@ router.get('/payments', requireAdmin, async (req, res) => {
       FROM fmb_payment_tbl p
       LEFT JOIN fmb_its_tbl u ON p.hof_its = CAST(u.its_id AS INTEGER)
       ORDER BY p.created_at DESC
-      LIMIT 1000
-    `);
+      LIMIT $1
+    `, [config.PAYMENTS_LIMIT]);
     res.json({ payments: result.rows });
   } catch (err) {
     console.error('List payments error:', err);

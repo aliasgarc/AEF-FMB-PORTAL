@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const config = require('../config/config');
 const { requireAdmin } = require('../auth');
 
 const router = express.Router();
@@ -25,8 +26,8 @@ router.get('/:itsId', async (req, res) => {
       LEFT JOIN notification_reads nr ON n.id = nr.notification_id AND nr.its_id = $1
       WHERE n.is_active = true
       ORDER BY n.created_at DESC
-      LIMIT 50`,
-      [itsId]
+      LIMIT $2`,
+      [itsId, config.NOTIFICATIONS_LIMIT]
     );
 
     res.json({
@@ -127,7 +128,8 @@ router.get('/admin/all', async (req, res) => {
         is_active
       FROM notifications
       ORDER BY created_at DESC
-      LIMIT 100`
+      LIMIT $1`,
+      [config.NOTIFICATIONS_ADMIN_LIMIT]
     );
 
     res.json({ notifications: notificationsResult.rows });

@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const config = require('../config/config');
 
 const router = express.Router();
 
@@ -180,7 +181,8 @@ router.get('/updates', async (req, res) => {
       `SELECT id, version, title, message, app_type, created_by, created_at, is_active
        FROM app_updates
        ORDER BY created_at DESC
-       LIMIT 50`
+       LIMIT $1`,
+      [config.APP_UPDATES_LIMIT]
     );
 
     res.json({
