@@ -152,12 +152,12 @@ router.get('/users', requireAdmin, async (req, res) => {
       const [minPercent, maxPercent] = pendingScale.split('-').map(Number);
       havingClause = `HAVING CASE
         WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
-        THEN (COALESCE(SUM(pt.amt_pending), 0) / COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 1)) * 100
+        THEN ROUND((COALESCE(SUM(pt.amt_pending), 0) / CAST(t.takhmeen_amt AS NUMERIC(12,2))) * 100, 2)
         ELSE 0
       END >= ${minPercent}
       AND CASE
         WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
-        THEN (COALESCE(SUM(pt.amt_pending), 0) / COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 1)) * 100
+        THEN ROUND((COALESCE(SUM(pt.amt_pending), 0) / CAST(t.takhmeen_amt AS NUMERIC(12,2))) * 100, 2)
         ELSE 0
       END <= ${maxPercent}`;
     }
@@ -170,9 +170,12 @@ router.get('/users', requireAdmin, async (req, res) => {
         COALESCE(SUM(pt.amt_rcv), 0)::numeric(12,2) AS amount_received,
         COALESCE(SUM(pt.amt_pending), 0)::numeric(12,2) AS amount_pending,
         (COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0) + COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding,
+        -- Pending Percentage = (Amount Pending / Total Takhmeen) × 100
         CASE
           WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
-          THEN ROUND((COALESCE(SUM(pt.amt_pending), 0) / COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 1)) * 100, 2)
+          THEN ROUND(
+            (COALESCE(SUM(pt.amt_pending), 0) / CAST(t.takhmeen_amt AS NUMERIC(12,2))) * 100
+            , 2)
           ELSE 0
         END::numeric(5,2) AS pending_percentage
       FROM fmb_its_tbl u
@@ -233,12 +236,12 @@ router.get('/users/export/csv', requireAdmin, async (req, res) => {
       const [minPercent, maxPercent] = pendingScale.split('-').map(Number);
       havingClause = `HAVING CASE
         WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
-        THEN (COALESCE(SUM(pt.amt_pending), 0) / COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 1)) * 100
+        THEN ROUND((COALESCE(SUM(pt.amt_pending), 0) / CAST(t.takhmeen_amt AS NUMERIC(12,2))) * 100, 2)
         ELSE 0
       END >= ${minPercent}
       AND CASE
         WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
-        THEN (COALESCE(SUM(pt.amt_pending), 0) / COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 1)) * 100
+        THEN ROUND((COALESCE(SUM(pt.amt_pending), 0) / CAST(t.takhmeen_amt AS NUMERIC(12,2))) * 100, 2)
         ELSE 0
       END <= ${maxPercent}`;
     }
