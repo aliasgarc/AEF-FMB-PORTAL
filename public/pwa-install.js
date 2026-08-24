@@ -11,9 +11,13 @@ class PWAManager {
   }
 
   init() {
-    // Register service worker
+    // Register service worker with version to enable cache busting on updates
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+      // Get version from manifest or use timestamp as fallback for cache busting
+      const version = document.querySelector('meta[name="app-version"]')?.content ||
+                     new Date().toISOString().split('T')[0];
+      const swUrl = `/service-worker.js?v=${encodeURIComponent(version)}`;
+      navigator.serviceWorker.register(swUrl, { scope: '/' })
         .then((registration) => {
           console.log('[PWA] Service Worker registered successfully');
 

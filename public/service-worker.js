@@ -1,5 +1,8 @@
 // Service Worker for PWA offline support
-const CACHE_VERSION = 'v1';
+// Version is set via CACHE_VERSION query param from app (e.g., ?v=1.2.0)
+// This ensures cache is invalidated when app version changes
+const urlParams = new URLSearchParams(self.location.search);
+const CACHE_VERSION = urlParams.get('v') || 'default';
 const CACHE_NAME = `payment-tracker-${CACHE_VERSION}`;
 const OFFLINE_PAGE = '/offline.html';
 
