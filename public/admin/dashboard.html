@@ -1815,7 +1815,20 @@
             <h3 class="card-title" style="margin: 0 0 8px 0;">📊 <span>PWA Analytics Dashboard</span></h3>
             <p class="card-subtitle" style="margin: 0;">Installation metrics and version distribution</p>
           </div>
-          <button class="secondary small" id="refreshAnalytics" style="cursor: pointer;">🔄 Refresh</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="secondary small" id="refreshAnalytics" style="cursor: pointer;">🔄 Refresh</button>
+            <button class="secondary small" id="exportCsvAnalytics" style="cursor: pointer;">📥 CSV Export</button>
+            <button class="secondary small" id="generateReportAnalytics" style="cursor: pointer;">📋 Generate Report</button>
+          </div>
+        </div>
+
+        <!-- Date Range Filter -->
+        <div style="display: flex; gap: 12px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb; align-items: center;">
+          <label style="font-weight: 600; color: #1a1a1a;">Filter by Date:</label>
+          <input type="date" id="analyticsStartDate" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+          <span style="color: #999;">to</span>
+          <input type="date" id="analyticsEndDate" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+          <button class="small" id="applyDateFilter" style="cursor: pointer; padding: 8px 16px;">Apply</button>
         </div>
 
         <!-- Stats Grid -->

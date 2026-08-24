@@ -47,36 +47,37 @@ router.get('/me', requireAdmin, (req, res) => {
 
 // ---------------------------------------------------------------
 // GET /api/admin/stats — dashboard statistics (Takhmeen + payments)
+// OPTIMIZED: All 4 queries run in parallel to minimize latency
 // ---------------------------------------------------------------
 router.get('/stats', requireAdmin, async (req, res) => {
   try {
-    // Get total users count
-    const usersResult = await db.query(`
-      SELECT COALESCE(COUNT(*), 0) AS total_users FROM fmb_its_tbl
-    `);
-
-    // Get count of users with takhmeen data
-    const usersWithTakhmeen = await db.query(`
-      SELECT COALESCE(COUNT(DISTINCT hof_its), 0) AS users_with_takhmeen FROM fmb_takhmeen
-    `);
-
-    // Get total Takhmeen from all records (sum of all takhmeen_amt)
-    const takhmeeResult = await db.query(`
-      SELECT COALESCE(SUM(CAST(NULLIF(takhmeen_amt, '') AS NUMERIC(12,2))), 0)::numeric(12,2) AS total_billed
-      FROM fmb_takhmeen
-      WHERE takhmeen_amt IS NOT NULL AND takhmeen_amt != ''
-    `);
-
-    // Get payment receipts stats
-    const receiptsResult = await db.query(`
-      SELECT
-        COALESCE(SUM(amt_rcv), 0)::numeric(12,2) AS total_received,
-        COALESCE(SUM(amt_pending), 0)::numeric(12,2) AS total_pending
-      FROM fmb_payment_tbl
-    `);
+    // Run all stats queries in parallel instead of sequentially
+    const [usersResult, takhmeenUsersResult, takhmeeResult, receiptsResult] = await Promise.all([
+      // Total users count
+      db.query(`
+        SELECT COALESCE(COUNT(*), 0) AS total_users FROM fmb_its_tbl
+      `),
+      // Count of users with takhmeen data
+      db.query(`
+        SELECT COALESCE(COUNT(DISTINCT hof_its), 0) AS users_with_takhmeen FROM fmb_takhmeen
+      `),
+      // Total Takhmeen from all records
+      db.query(`
+        SELECT COALESCE(SUM(CAST(NULLIF(takhmeen_amt, '') AS NUMERIC(12,2))), 0)::numeric(12,2) AS total_billed
+        FROM fmb_takhmeen
+        WHERE takhmeen_amt IS NOT NULL AND takhmeen_amt != ''
+      `),
+      // Payment receipts stats
+      db.query(`
+        SELECT
+          COALESCE(SUM(amt_rcv), 0)::numeric(12,2) AS total_received,
+          COALESCE(SUM(amt_pending), 0)::numeric(12,2) AS total_pending
+        FROM fmb_payment_tbl
+      `)
+    ]);
 
     const users = usersResult.rows[0];
-    const takhmeenUsers = usersWithTakhmeen.rows[0];
+    const takhmeenUsers = takhmeenUsersResult.rows[0];
     const takhmeen = takhmeeResult.rows[0];
     const receipts = receiptsResult.rows[0];
 
@@ -126,23 +127,26 @@ router.get('/users', requireAdmin, async (req, res) => {
 
 // ---------------------------------------------------------------
 // GET /api/admin/users/:id — one user's demographics + full history
+// OPTIMIZED: Takhmeen and payment queries run in parallel
 // ---------------------------------------------------------------
 router.get('/users/:id', requireAdmin, async (req, res) => {
   try {
     const userResult = await db.query('SELECT * FROM fmb_its_tbl WHERE id = $1', [req.params.id]);
     if (userResult.rows.length === 0) return res.status(404).json({ error: 'User not found.' });
 
-    // Fetch takhmeen data from fmb_takhmeen (same as user page)
-    const takhmeeResult = await db.query(
-      'SELECT id, takhmeen_yr, takhmeen_amt, comment, created_at, updated_at, COALESCE(CAST(previous_amount_due AS NUMERIC(12,2)), 0)::numeric(12,2) AS previous_amount_due FROM fmb_takhmeen WHERE hof_its = $1 ORDER BY takhmeen_yr DESC',
-      [userResult.rows[0].its_id]
-    );
+    const itsId = userResult.rows[0].its_id;
 
-    // Fetch payment receipts (hof_its stores numeric ITS ID)
-    const paymentsResult = await db.query(
-      'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no FROM fmb_payment_tbl WHERE hof_its = CAST($1 AS INTEGER) ORDER BY received_date DESC',
-      [userResult.rows[0].its_id]
-    );
+    // Fetch takhmeen and payment data in parallel
+    const [takhmeeResult, paymentsResult] = await Promise.all([
+      db.query(
+        'SELECT id, takhmeen_yr, takhmeen_amt, comment, created_at, updated_at, COALESCE(CAST(previous_amount_due AS NUMERIC(12,2)), 0)::numeric(12,2) AS previous_amount_due FROM fmb_takhmeen WHERE hof_its = $1 ORDER BY takhmeen_yr DESC',
+        [itsId]
+      ),
+      db.query(
+        'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no FROM fmb_payment_tbl WHERE hof_its = CAST($1 AS INTEGER) ORDER BY received_date DESC',
+        [itsId]
+      )
+    ]);
 
     const user = userResult.rows[0];
     const takhmeen = takhmeeResult.rows;

@@ -105,8 +105,8 @@ async function init() {
     document.getElementById('detailPanel').style.display = 'none';
   });
 
-  await loadUsers();
-  await loadAnalytics();
+  // Load users and analytics in parallel instead of sequentially
+  await Promise.all([loadUsers(), loadAnalytics()]);
 
   // Start periodic update checking (every 5 minutes)
   if (window.PWAUtils && me && me.admin && me.admin.id) {
@@ -260,10 +260,10 @@ function setupSortHandlers() {
 
 function renderUsers(users) {
   const tbody = document.getElementById('usersBody');
-  tbody.innerHTML = '';
+  // Build all HTML at once for better mobile performance
+  let html = '';
 
-  users.forEach((u, index) => {
-    const tr = document.createElement('tr');
+  users.forEach((u) => {
     const itsId = escapeHtml(u.its_id || u.sabil_no || '-');
     const name = escapeHtml(u.name || '-');
     const mobile = escapeHtml(u.mobile || '-');
@@ -275,20 +275,22 @@ function renderUsers(users) {
     const outstanding = currency(u.outstanding || 0);
     const outstandingColor = Number(u.outstanding) > 0 ? '#ef4444' : '#22c55e';
 
-    tr.style.animation = `slideIn 0.3s ease-out ${index * 0.02}s`;
-    tr.innerHTML = `
-      <td><strong>${itsId}</strong></td>
-      <td><strong>${name}</strong></td>
-      <td>${mobile}</td>
-      <td>${sector}</td>
-      <td style="text-align: right; font-weight: 600;">₹${billed}</td>
-      <td style="text-align: right; color: #f59e0b; font-weight: 600;">₹${previousDue}</td>
-      <td style="text-align: right; color: #22c55e; font-weight: 600;">₹${received}</td>
-      <td style="text-align: right; color: #f59e0b; font-weight: 600;">₹${pending}</td>
-      <td style="text-align: right; color: ${outstandingColor}; font-weight: 700;">₹${outstanding}</td>
+    html += `
+      <tr>
+        <td><strong>${itsId}</strong></td>
+        <td><strong>${name}</strong></td>
+        <td>${mobile}</td>
+        <td>${sector}</td>
+        <td style="text-align: right; font-weight: 600;">₹${billed}</td>
+        <td style="text-align: right; color: #f59e0b; font-weight: 600;">₹${previousDue}</td>
+        <td style="text-align: right; color: #22c55e; font-weight: 600;">₹${received}</td>
+        <td style="text-align: right; color: #f59e0b; font-weight: 600;">₹${pending}</td>
+        <td style="text-align: right; color: ${outstandingColor}; font-weight: 700;">₹${outstanding}</td>
+      </tr>
     `;
-    tbody.appendChild(tr);
   });
+
+  tbody.innerHTML = html;
 }
 
 async function showDetail(id) {
@@ -656,11 +658,166 @@ async function loadAnalytics() {
   }
 }
 
+// Export analytics as CSV
+async function exportAnalyticsCSV() {
+  try {
+    const startDate = document.getElementById('analyticsStartDate')?.value;
+    const endDate = document.getElementById('analyticsEndDate')?.value;
+
+    let url = '/api/app-analytics/export/csv';
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (params.toString()) url += '?' + params.toString();
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Export failed');
+
+    // Create download link
+    const blob = await res.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `pwa-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (err) {
+    console.error('Export error:', err);
+    alert('Failed to export CSV: ' + err.message);
+  }
+}
+
+// Generate analytics report
+async function generateAnalyticsReport() {
+  try {
+    const startDate = document.getElementById('analyticsStartDate')?.value;
+    const endDate = document.getElementById('analyticsEndDate')?.value;
+
+    let url = '/api/app-analytics/report';
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (params.toString()) url += '?' + params.toString();
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Report generation failed');
+
+    const report = await res.json();
+
+    // Create report modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 20px;
+    `;
+
+    const trendHTML = report.trend.map(t => `
+      <tr>
+        <td>${t.date}</td>
+        <td>${t.count}</td>
+      </tr>
+    `).join('');
+
+    const groupedHTML = report.grouped.map(g => `
+      <tr>
+        <td>${g.category || 'N/A'}</td>
+        <td>${g.count}</td>
+      </tr>
+    `).join('');
+
+    modal.innerHTML = `
+      <div style="background: white; border-radius: 12px; padding: 32px; max-width: 800px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <h2 style="margin: 0;">📋 PWA Analytics Report</h2>
+          <button onclick="this.closest('div').parentElement.remove()" style="background: none; border: none; font-size: 24px; cursor: pointer;">✕</button>
+        </div>
+
+        <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
+          <h3 style="margin: 0 0 16px 0; color: #1a1a1a;">Summary</h3>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+            <div>
+              <div style="font-size: 24px; font-weight: bold; color: #3c7441;">${report.summary.total_installs}</div>
+              <div style="font-size: 12px; color: #666;">Total Installations</div>
+            </div>
+            <div>
+              <div style="font-size: 24px; font-weight: bold; color: #0284c7;">${report.summary.unique_users}</div>
+              <div style="font-size: 12px; color: #666;">Unique Users</div>
+            </div>
+            <div>
+              <div style="font-size: 24px; font-weight: bold; color: #7c3aed;">${report.summary.days_with_installs}</div>
+              <div style="font-size: 12px; color: #666;">Days with Activity</div>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #999; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+            Period: ${report.dateRange.startDate} to ${report.dateRange.endDate}
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+          <div>
+            <h3 style="margin: 0 0 12px 0; color: #1a1a1a;">Daily Trend (Last 30 Days)</h3>
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f0f0f0;">
+                  <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Date</th>
+                  <th style="padding: 8px; text-align: right; border-bottom: 1px solid #ddd;">Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${trendHTML}
+              </tbody>
+            </table>
+          </div>
+
+          <div>
+            <h3 style="margin: 0 0 12px 0; color: #1a1a1a;">Version Distribution</h3>
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f0f0f0;">
+                  <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Version</th>
+                  <th style="padding: 8px; text-align: right; border-bottom: 1px solid #ddd;">Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${groupedHTML}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button onclick="window.print()" class="small" style="cursor: pointer;">🖨️ Print</button>
+          <button onclick="this.closest('div').parentElement.remove()" class="secondary small" style="cursor: pointer;">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  } catch (err) {
+    console.error('Report generation error:', err);
+    alert('Failed to generate report: ' + err.message);
+  }
+}
+
 // Load analytics when analytics tab is visible
 window.addEventListener('load', () => {
   const refreshBtn = document.getElementById('refreshAnalytics');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', loadAnalytics);
-  }
+  const exportBtn = document.getElementById('exportCsvAnalytics');
+  const reportBtn = document.getElementById('generateReportAnalytics');
+  const filterBtn = document.getElementById('applyDateFilter');
+
+  if (refreshBtn) refreshBtn.addEventListener('click', loadAnalytics);
+  if (exportBtn) exportBtn.addEventListener('click', exportAnalyticsCSV);
+  if (reportBtn) reportBtn.addEventListener('click', generateAnalyticsReport);
+  if (filterBtn) filterBtn.addEventListener('click', loadAnalytics);
 });
 
