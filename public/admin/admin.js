@@ -118,9 +118,11 @@ async function init() {
 
 async function loadUsers() {
   try {
-    // Fetch both user list and stats with timeout
-    const usersRes = await fetchWithTimeout('/api/admin/users');
-    const statsRes = await fetchWithTimeout('/api/admin/stats');
+    // Fetch both user list and stats in parallel for better mobile performance
+    const [usersRes, statsRes] = await Promise.all([
+      fetchWithTimeout('/api/admin/users'),
+      fetchWithTimeout('/api/admin/stats')
+    ]);
 
     if (!usersRes.ok) {
       throw new Error('Failed to fetch users: ' + (await usersRes.text()));
