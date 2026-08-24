@@ -101,18 +101,17 @@ router.get('/stats', requireAdmin, async (req, res) => {
 
 // ---------------------------------------------------------------
 // GET /api/admin/users — list of all users with Takhmeen + payment summary
-// ENHANCED: Supports search, filtering, and sorting
-// Query params: search, status, minAmount, maxAmount, city, sector, sortBy, sortDir
+// ENHANCED: Supports search and amount/pending percentage filtering
+// Query params: search, minAmount, maxAmount, pendingScale, sortBy, sortDir
+// Pending Scale: all, 0-25, 25-50, 50-75, 75-100 (percentage of pending vs billed)
 // ---------------------------------------------------------------
 router.get('/users', requireAdmin, async (req, res) => {
   try {
     const {
       search = '',
-      status = '',
       minAmount = 0,
       maxAmount = 999999999,
-      city = '',
-      sector = '',
+      pendingScale = 'all',
       sortBy = 'outstanding',
       sortDir = 'desc'
     } = req.query;
@@ -131,18 +130,7 @@ router.get('/users', requireAdmin, async (req, res) => {
       paramCount++;
     }
 
-    // Status filter (Pending, Paid, Overdue)
-    if (status) {
-      if (status === 'pending') {
-        whereConditions.push(`(COALESCE(SUM(pt.amt_pending), 0) > 0)`);
-      } else if (status === 'paid') {
-        whereConditions.push(`(COALESCE(SUM(pt.amt_rcv), 0) > 0 AND COALESCE(SUM(pt.amt_pending), 0) = 0)`);
-      } else if (status === 'overdue') {
-        whereConditions.push(`(COALESCE(SUM(pt.amt_pending), 0) > 0)`);
-      }
-    }
-
-    // Amount range filter
+    // Amount range filter (Takhmeen amount)
     whereConditions.push(`(COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) >= $${paramCount})`);
     params.push(minAmount);
     paramCount++;
@@ -151,26 +139,28 @@ router.get('/users', requireAdmin, async (req, res) => {
     params.push(maxAmount);
     paramCount++;
 
-    // City filter
-    if (city && city.trim()) {
-      whereConditions.push(`u.city ILIKE $${paramCount}`);
-      params.push(`%${city}%`);
-      paramCount++;
-    }
-
-    // Sector filter
-    if (sector && sector.trim()) {
-      whereConditions.push(`u.sector ILIKE $${paramCount}`);
-      params.push(`%${sector}%`);
-      paramCount++;
-    }
-
     // Validate sortBy to prevent SQL injection
     const validSortFields = ['outstanding', 'total_billed', 'amount_received', 'amount_pending', 'name', 'its_id', 'mobile'];
     const finalSortBy = validSortFields.includes(sortBy) ? sortBy : 'outstanding';
     const finalSortDir = sortDir.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Build HAVING clause for pending percentage filter
+    let havingClause = '';
+    if (pendingScale && pendingScale !== 'all') {
+      const [minPercent, maxPercent] = pendingScale.split('-').map(Number);
+      havingClause = `HAVING CASE
+        WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
+        THEN (COALESCE(SUM(pt.amt_pending), 0) / COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 1)) * 100
+        ELSE 0
+      END >= ${minPercent}
+      AND CASE
+        WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
+        THEN (COALESCE(SUM(pt.amt_pending), 0) / COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 1)) * 100
+        ELSE 0
+      END <= ${maxPercent}`;
+    }
 
     const result = await db.query(`
       SELECT
@@ -179,12 +169,18 @@ router.get('/users', requireAdmin, async (req, res) => {
         COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0)::numeric(12,2) AS previous_amount_due,
         COALESCE(SUM(pt.amt_rcv), 0)::numeric(12,2) AS amount_received,
         COALESCE(SUM(pt.amt_pending), 0)::numeric(12,2) AS amount_pending,
-        (COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0) + COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding
+        (COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0) + COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding,
+        CASE
+          WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
+          THEN ROUND((COALESCE(SUM(pt.amt_pending), 0) / COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 1)) * 100, 2)
+          ELSE 0
+        END::numeric(5,2) AS pending_percentage
       FROM fmb_its_tbl u
       LEFT JOIN fmb_takhmeen t ON t.hof_its = u.its_id
       LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = CAST(u.its_id AS INTEGER)
       ${whereClause}
       GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt, t.previous_amount_due
+      ${havingClause}
       ORDER BY ${finalSortBy} ${finalSortDir}
       LIMIT 1000
     `, params);
@@ -203,11 +199,9 @@ router.get('/users/export/csv', requireAdmin, async (req, res) => {
   try {
     const {
       search = '',
-      status = '',
       minAmount = 0,
       maxAmount = 999999999,
-      city = '',
-      sector = ''
+      pendingScale = 'all'
     } = req.query;
 
     // Build WHERE clause (same as /users endpoint)
@@ -223,14 +217,6 @@ router.get('/users/export/csv', requireAdmin, async (req, res) => {
       paramCount++;
     }
 
-    if (status) {
-      if (status === 'pending' || status === 'overdue') {
-        whereConditions.push(`(COALESCE(SUM(pt.amt_pending), 0) > 0)`);
-      } else if (status === 'paid') {
-        whereConditions.push(`(COALESCE(SUM(pt.amt_rcv), 0) > 0 AND COALESCE(SUM(pt.amt_pending), 0) = 0)`);
-      }
-    }
-
     whereConditions.push(`(COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) >= $${paramCount})`);
     params.push(minAmount);
     paramCount++;
@@ -239,19 +225,23 @@ router.get('/users/export/csv', requireAdmin, async (req, res) => {
     params.push(maxAmount);
     paramCount++;
 
-    if (city && city.trim()) {
-      whereConditions.push(`u.city ILIKE $${paramCount}`);
-      params.push(`%${city}%`);
-      paramCount++;
-    }
-
-    if (sector && sector.trim()) {
-      whereConditions.push(`u.sector ILIKE $${paramCount}`);
-      params.push(`%${sector}%`);
-      paramCount++;
-    }
-
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Build HAVING clause for pending percentage filter
+    let havingClause = '';
+    if (pendingScale && pendingScale !== 'all') {
+      const [minPercent, maxPercent] = pendingScale.split('-').map(Number);
+      havingClause = `HAVING CASE
+        WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
+        THEN (COALESCE(SUM(pt.amt_pending), 0) / COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 1)) * 100
+        ELSE 0
+      END >= ${minPercent}
+      AND CASE
+        WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
+        THEN (COALESCE(SUM(pt.amt_pending), 0) / COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 1)) * 100
+        ELSE 0
+      END <= ${maxPercent}`;
+    }
 
     const result = await db.query(`
       SELECT
@@ -266,6 +256,7 @@ router.get('/users/export/csv', requireAdmin, async (req, res) => {
       LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = CAST(u.its_id AS INTEGER)
       ${whereClause}
       GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt, t.previous_amount_due
+      ${havingClause}
       ORDER BY outstanding DESC
     `, params);
 

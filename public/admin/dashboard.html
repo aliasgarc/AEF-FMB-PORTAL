@@ -1751,36 +1751,50 @@
           </div>
         </div>
 
-        <!-- Advanced Search & Filters -->
+        <!-- Search & Filters -->
         <div style="margin-bottom: 20px;">
+          <!-- Search Bar -->
           <div class="search-section search-box" style="margin-bottom: 12px;">
             <input type="text" id="userSearch" placeholder="Search by name, ITS ID, or mobile...">
           </div>
 
-          <!-- Filter Chips -->
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center;">
-            <select id="statusFilter" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; background: white;">
-              <option value="">All Status</option>
-              <option value="pending">📋 Pending</option>
-              <option value="paid">✅ Paid</option>
-              <option value="overdue">⚠️ Overdue</option>
-            </select>
-
-            <input type="text" id="cityFilter" placeholder="Filter by City" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; flex: 1; min-width: 120px;">
-
-            <input type="text" id="sectorFilter" placeholder="Filter by Sector" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; flex: 1; min-width: 120px;">
-
-            <button id="clearFiltersBtn" class="secondary small" style="padding: 8px 12px; cursor: pointer;">🔄 Clear</button>
-            <button id="exportBtn" class="secondary small" style="padding: 8px 12px; cursor: pointer;">📥 Export CSV</button>
-          </div>
-
           <!-- Amount Range Filter -->
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <label style="font-size: 12px; font-weight: 600;">Amount Range:</label>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+            <label style="font-size: 12px; font-weight: 600;">💰 Amount (Takhmeen):</label>
             <input type="number" id="minAmountFilter" placeholder="Min" value="0" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; width: 100px;">
             <span style="font-size: 12px;">to</span>
             <input type="number" id="maxAmountFilter" placeholder="Max" value="999999999" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; width: 100px;">
-            <button id="applyFiltersBtn" class="small" style="padding: 8px 16px; cursor: pointer;">Apply Filters</button>
+          </div>
+
+          <!-- Pending Percentage Scale -->
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+            <label style="font-size: 12px; font-weight: 600;">⏳ Pending Scale:</label>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <input type="radio" id="pendingAll" name="pendingFilter" value="all" checked style="cursor: pointer;">
+              <label for="pendingAll" style="font-size: 12px; cursor: pointer; margin: 0;">All</label>
+            </div>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <input type="radio" id="pending0to25" name="pendingFilter" value="0-25" style="cursor: pointer;">
+              <label for="pending0to25" style="font-size: 12px; cursor: pointer; margin: 0;">0-25%</label>
+            </div>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <input type="radio" id="pending25to50" name="pendingFilter" value="25-50" style="cursor: pointer;">
+              <label for="pending25to50" style="font-size: 12px; cursor: pointer; margin: 0;">25-50%</label>
+            </div>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <input type="radio" id="pending50to75" name="pendingFilter" value="50-75" style="cursor: pointer;">
+              <label for="pending50to75" style="font-size: 12px; cursor: pointer; margin: 0;">50-75%</label>
+            </div>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <input type="radio" id="pending75to100" name="pendingFilter" value="75-100" style="cursor: pointer;">
+              <label for="pending75to100" style="font-size: 12px; cursor: pointer; margin: 0;">75-100%</label>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button id="clearFiltersBtn" class="secondary small" style="padding: 8px 12px; cursor: pointer;">🔄 Clear</button>
+            <button id="exportBtn" class="secondary small" style="padding: 8px 12px; cursor: pointer;">📥 Export CSV</button>
           </div>
         </div>
 

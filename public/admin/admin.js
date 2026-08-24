@@ -123,13 +123,12 @@ async function init() {
 
 // Get current filter values
 function getActiveFilters() {
+  const pendingFilter = document.querySelector('input[name="pendingFilter"]:checked');
   return {
     search: document.getElementById('userSearch')?.value || '',
-    status: document.getElementById('statusFilter')?.value || '',
-    city: document.getElementById('cityFilter')?.value || '',
-    sector: document.getElementById('sectorFilter')?.value || '',
     minAmount: document.getElementById('minAmountFilter')?.value || '0',
-    maxAmount: document.getElementById('maxAmountFilter')?.value || '999999999'
+    maxAmount: document.getElementById('maxAmountFilter')?.value || '999999999',
+    pendingScale: pendingFilter?.value || 'all'
   };
 }
 
@@ -858,12 +857,9 @@ window.addEventListener('load', () => {
 
   // Search and filter event listeners
   const userSearch = document.getElementById('userSearch');
-  const statusFilter = document.getElementById('statusFilter');
-  const cityFilter = document.getElementById('cityFilter');
-  const sectorFilter = document.getElementById('sectorFilter');
   const minAmountFilter = document.getElementById('minAmountFilter');
   const maxAmountFilter = document.getElementById('maxAmountFilter');
-  const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+  const pendingRadios = document.querySelectorAll('input[name="pendingFilter"]');
   const clearFiltersBtn = document.getElementById('clearFiltersBtn');
   const exportUsersCsvBtn = document.getElementById('exportBtn');
 
@@ -875,25 +871,23 @@ window.addEventListener('load', () => {
     });
   }
 
-  // Filter changes
-  if (statusFilter) statusFilter.addEventListener('change', loadUsers);
-  if (cityFilter) cityFilter.addEventListener('change', loadUsers);
-  if (sectorFilter) sectorFilter.addEventListener('change', loadUsers);
+  // Pending percentage filter changes
+  pendingRadios.forEach(radio => {
+    radio.addEventListener('change', loadUsers);
+  });
 
-  // Apply amount range filter
-  if (applyFiltersBtn) {
-    applyFiltersBtn.addEventListener('click', loadUsers);
-  }
+  // Amount range filter changes
+  if (minAmountFilter) minAmountFilter.addEventListener('change', loadUsers);
+  if (maxAmountFilter) maxAmountFilter.addEventListener('change', loadUsers);
 
   // Clear all filters
   if (clearFiltersBtn) {
     clearFiltersBtn.addEventListener('click', () => {
       if (userSearch) userSearch.value = '';
-      if (statusFilter) statusFilter.value = '';
-      if (cityFilter) cityFilter.value = '';
-      if (sectorFilter) sectorFilter.value = '';
       if (minAmountFilter) minAmountFilter.value = '0';
       if (maxAmountFilter) maxAmountFilter.value = '999999999';
+      const pendingAllRadio = document.getElementById('pendingAll');
+      if (pendingAllRadio) pendingAllRadio.checked = true;
       loadUsers();
     });
   }
