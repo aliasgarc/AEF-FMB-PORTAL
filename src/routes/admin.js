@@ -4,6 +4,7 @@ const db = require('../db');
 const config = require('../config/config');
 const { verifyAdminCredentials, issueToken, setAuthCookie, clearAuthCookie, requireAdmin } = require('../auth');
 const { parseCombinedExcel } = require('../utils/parsers');
+const { createUploadJob, getJobStatus } = require('../jobs/uploadQueue');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.MAX_FILE_SIZE } });
@@ -151,12 +152,12 @@ router.get('/users', requireAdmin, async (req, res) => {
     if (pendingScale && pendingScale !== 'all') {
       const [minPercent, maxPercent] = pendingScale.split('-').map(Number);
       havingClause = `HAVING CASE
-        WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
+        WHEN t.takhmeen_amt IS NOT NULL AND CAST(t.takhmeen_amt AS NUMERIC(12,2)) > 0
         THEN ROUND((COALESCE(SUM(pt.amt_pending), 0) / CAST(t.takhmeen_amt AS NUMERIC(12,2))) * 100, 2)
         ELSE 0
       END >= ${minPercent}
       AND CASE
-        WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
+        WHEN t.takhmeen_amt IS NOT NULL AND CAST(t.takhmeen_amt AS NUMERIC(12,2)) > 0
         THEN ROUND((COALESCE(SUM(pt.amt_pending), 0) / CAST(t.takhmeen_amt AS NUMERIC(12,2))) * 100, 2)
         ELSE 0
       END <= ${maxPercent}`;
@@ -172,7 +173,8 @@ router.get('/users', requireAdmin, async (req, res) => {
         (COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0) + COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding,
         -- Pending Percentage = (Amount Pending / Total Takhmeen) × 100
         CASE
-          WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
+          WHEN t.takhmeen_amt IS NOT NULL
+            AND CAST(t.takhmeen_amt AS NUMERIC(12,2)) > 0
           THEN ROUND(
             (COALESCE(SUM(pt.amt_pending), 0) / CAST(t.takhmeen_amt AS NUMERIC(12,2))) * 100
             , 2)
@@ -235,12 +237,12 @@ router.get('/users/export/csv', requireAdmin, async (req, res) => {
     if (pendingScale && pendingScale !== 'all') {
       const [minPercent, maxPercent] = pendingScale.split('-').map(Number);
       havingClause = `HAVING CASE
-        WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
+        WHEN t.takhmeen_amt IS NOT NULL AND CAST(t.takhmeen_amt AS NUMERIC(12,2)) > 0
         THEN ROUND((COALESCE(SUM(pt.amt_pending), 0) / CAST(t.takhmeen_amt AS NUMERIC(12,2))) * 100, 2)
         ELSE 0
       END >= ${minPercent}
       AND CASE
-        WHEN COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) > 0
+        WHEN t.takhmeen_amt IS NOT NULL AND CAST(t.takhmeen_amt AS NUMERIC(12,2)) > 0
         THEN ROUND((COALESCE(SUM(pt.amt_pending), 0) / CAST(t.takhmeen_amt AS NUMERIC(12,2))) * 100, 2)
         ELSE 0
       END <= ${maxPercent}`;
@@ -330,142 +332,127 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// POST /api/admin/upload-combined — Combined ITS/Takhmeen/Payment upload
+// POST /api/admin/upload-combined — Async combined upload
+// File is queued for background processing
 // ---------------------------------------------------------------
 router.post('/upload-combined', requireAdmin, upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded. Field name must be "file".' });
+  console.log('📨 Upload endpoint hit');
 
-  const { rows, errors: parseErrors } = parseCombinedExcel(req.file.buffer);
-  if (rows.length === 0) {
-    return res.status(400).json({ error: 'No valid rows found in the sheet.', details: parseErrors });
+  if (!req.file) {
+    console.error('❌ No file uploaded');
+    return res.status(400).json({ error: 'No file uploaded. Field name must be "file".' });
   }
 
-  const client = await db.pool.connect();
-  let itsUpserted = 0;
-  let takhmeenUpserted = 0;
-  let paymentUpserted = 0;
-  const errors = [...parseErrors];
-
-  const toDateString = () => new Date().toISOString().split('T')[0];
-  const receivedDate = toDateString();
-
   try {
-    await client.query('BEGIN');
+    console.log(`📦 Queuing upload: ${req.admin.username}, file size: ${req.file.size} bytes`);
 
-    for (const row of rows) {
-      const spName = `row_${row._rowNum}`;
-
-      try {
-        // Create a savepoint for this row so we can recover if it fails
-        await client.query(`SAVEPOINT ${spName}`);
-
-        // Step 1: Upsert into fmb_its_tbl
-        const existingIts = await client.query(
-          'SELECT id FROM fmb_its_tbl WHERE its_id = $1',
-          [row.its_id]
-        );
-
-        if (existingIts.rows.length > 0) {
-          // Update existing user
-          await client.query(
-            `UPDATE fmb_its_tbl SET
-               sabil_no = COALESCE($2, sabil_no),
-               name = COALESCE($3, name),
-               sector = COALESCE($4, sector)
-             WHERE its_id = $1`,
-            [row.its_id, row.sabeel_number, row.full_name, row.mohalla_name]
-          );
-        } else {
-          // Insert new user
-          await client.query(
-            `INSERT INTO fmb_its_tbl (its_id, sabil_no, name, sector)
-             VALUES ($1, $2, $3, $4)`,
-            [row.its_id, row.sabeel_number, row.full_name, row.mohalla_name]
-          );
-        }
-        itsUpserted++;
-
-        // Step 2: Upsert into fmb_takhmeen
-        const existingTakhmeen = await client.query(
-          'SELECT id FROM fmb_takhmeen WHERE hof_its = $1',
-          [row.its_id]
-        );
-
-        if (existingTakhmeen.rows.length > 0) {
-          // Update existing takhmeen record
-          await client.query(
-            `UPDATE fmb_takhmeen SET
-               takhmeen_yr = COALESCE($2, takhmeen_yr),
-               takhmeen_amt = COALESCE($3::TEXT, takhmeen_amt),
-               previous_amount_due = COALESCE($4, previous_amount_due)
-             WHERE hof_its = $1`,
-            [row.its_id, row.takhmeen_year, row.takhmeen_amount, row.previous_amount]
-          );
-        } else {
-          // Insert new takhmeen record
-          await client.query(
-            `INSERT INTO fmb_takhmeen (hof_its, takhmeen_yr, takhmeen_amt, previous_amount_due)
-             VALUES ($1, $2, $3::TEXT, $4)`,
-            [row.its_id, row.takhmeen_year, row.takhmeen_amount, row.previous_amount]
-          );
-        }
-        takhmeenUpserted++;
-
-        // Step 3: Upsert into fmb_payment_tbl
-        const existingPayment = await client.query(
-          'SELECT payment_id FROM fmb_payment_tbl WHERE hof_its = $1',
-          [row.its_id]
-        );
-
-        if (existingPayment.rows.length > 0) {
-          // Update existing payment record
-          await client.query(
-            `UPDATE fmb_payment_tbl SET
-               hof_name = COALESCE($2, hof_name),
-               amt_rcv = COALESCE($3, amt_rcv),
-               amt_pending = COALESCE($4, amt_pending)
-             WHERE hof_its = $1`,
-            [row.its_id, row.full_name, row.paid, row.due]
-          );
-        } else {
-          // Insert new payment record with auto-generated receipt_no
-          const receiptNo = `RCP-${row.its_id}-${Date.now()}`;
-          await client.query(
-            `INSERT INTO fmb_payment_tbl (receipt_no, hof_its, hof_name, amt_rcv, payment_mode, received_date, amt_pending)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            [receiptNo, row.its_id, row.full_name, row.paid, 'N/A', receivedDate, row.due]
-          );
-        }
-        paymentUpserted++;
-
-        // Row succeeded, release savepoint
-        await client.query(`RELEASE SAVEPOINT ${spName}`);
-      } catch (rowErr) {
-        // Rollback to savepoint to recover from this row's error
-        await client.query(`ROLLBACK TO SAVEPOINT ${spName}`);
-        errors.push(`Row ${row._rowNum} (ITS ${row.its_id}): ${rowErr.message}`);
-      }
+    // Ensure res is writable
+    if (res.headersSent) {
+      console.error('❌ Headers already sent!');
+      return;
     }
 
-    await client.query('COMMIT');
+    const job = await createUploadJob(req.file.buffer, req.admin.username);
+    console.log(`✅ Job ${job.id} created successfully, sending response...`);
 
-    res.json({
+    const response = {
       ok: true,
-      summary: {
-        recordsProcessed: rows.length,
-        itsUpserted,
-        takhmeenUpserted,
-        paymentUpserted,
-        rowErrors: errors.length - parseErrors.length
-      },
-      warnings: errors
-    });
+      jobId: job.id,
+      status: job.status,
+      message: 'File queued for processing. Check job status with /api/admin/upload-status/:jobId',
+      checkStatusUrl: `/api/admin/upload-status/${job.id}`
+    };
+
+    console.log(`📤 Sending response:`, JSON.stringify(response));
+    res.set('Content-Type', 'application/json');
+    res.json(response);
+    console.log(`✅ Response sent successfully`);
+
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Combined upload error:', err);
-    res.status(500).json({ error: 'Failed to process combined upload.', details: err.message });
-  } finally {
-    client.release();
+    console.error('❌ Upload queue error:', err.message);
+    console.error('Stack:', err.stack);
+
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Failed to queue upload: ' + err.message,
+        type: err.constructor.name
+      });
+    } else {
+      console.error('❌ Could not send error response - headers already sent');
+    }
+  }
+});
+
+// ---------------------------------------------------------------
+// GET /api/admin/upload-status/:jobId — Check upload job status
+// ---------------------------------------------------------------
+router.get('/upload-status/:jobId', requireAdmin, async (req, res) => {
+  try {
+    // Disable caching for status checks - always get fresh data
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
+    const job = await getJobStatus(parseInt(req.params.jobId, 10));
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found.' });
+    }
+
+    const response = {
+      jobId: job.id,
+      status: job.status,
+      progress: job.progress || 0,
+      createdAt: job.created_at,
+      startedAt: job.started_at,
+      completedAt: job.completed_at
+    };
+
+    if (job.status === 'completed' && job.summary) {
+      response.summary = job.summary;
+
+      // Group errors by type for better readability
+      if (response.summary.warnings && response.summary.warnings.length > 0) {
+        const errorsByType = {};
+        const errorsByRow = {};
+
+        response.summary.warnings.forEach(warning => {
+          // Extract error type from warning message
+          const match = warning.match(/Row \d+ \(ITS \d+\): (.+)/);
+          if (match) {
+            const errorMsg = match[1];
+            const rowMatch = warning.match(/Row (\d+)/);
+            const itsMatch = warning.match(/ITS (\d+)/);
+
+            if (!errorsByType[errorMsg]) {
+              errorsByType[errorMsg] = [];
+            }
+            if (rowMatch && itsMatch) {
+              errorsByType[errorMsg].push({ row: rowMatch[1], its: itsMatch[1] });
+              errorsByRow[rowMatch[1]] = errorMsg;
+            }
+          }
+        });
+
+        // Add grouped errors to response
+        response.summary.errorsByType = errorsByType;
+        response.summary.errorDetails = {
+          total: response.summary.warnings.length,
+          byType: Object.entries(errorsByType).map(([error, instances]) => ({
+            error,
+            count: instances.length,
+            affectedRows: instances.slice(0, 10).map(i => `Row ${i.row} (ITS ${i.its})`),
+            moreRows: instances.length > 10 ? instances.length - 10 : 0
+          }))
+        };
+      }
+    } else if (job.status === 'failed') {
+      response.error = job.error_message;
+    }
+
+    res.json(response);
+  } catch (err) {
+    console.error('Status check error:', err);
+    res.status(500).json({ error: 'Failed to check job status.', details: err.message });
   }
 });
 

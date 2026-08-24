@@ -54,6 +54,13 @@ if (loginForm) {
   });
 }
 
+// Escape HTML for security (from fetch-utils.js)
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // ---------- Dashboard page ----------
 // App version for update checking
 const APP_VERSION = '1.2.0';
@@ -307,7 +314,10 @@ function renderUsers(users) {
     const received = currency(u.amount_received || 0);
     const pending = currency(u.amount_pending || 0);
     const outstanding = currency(u.outstanding || 0);
-    const pendingPercent = u.pending_percentage ? Number(u.pending_percentage).toFixed(1) : '0.0';
+    // Handle pending percentage - convert to number, handle null/undefined
+    const pendingPercent = (u.pending_percentage !== null && u.pending_percentage !== undefined)
+      ? Number(u.pending_percentage).toFixed(1)
+      : '0.0';
     const outstandingColor = Number(u.outstanding) > 0 ? '#ef4444' : '#22c55e';
 
     // Color code pending percentage
@@ -375,15 +385,332 @@ async function showDetail(id) {
   document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
 }
 
+async function checkJobStatus(jobId, isAutoCheck = false) {
+  const resultEl = document.getElementById('combinedUploadResult');
+
+  if (!resultEl) {
+    console.error('Result element not found');
+    return;
+  }
+
+  if (!jobId) {
+    console.error('No job ID provided');
+    resultEl.innerHTML = '❌ No job ID provided';
+    resultEl.className = 'upload-result error';
+    return;
+  }
+
+  try {
+    // Add cache-buster to ensure fresh data
+    const res = await fetch(`/api/admin/upload-status/${jobId}?t=${Date.now()}`);
+
+    if (!res.ok) {
+      const data = await res.json();
+      resultEl.innerHTML = `❌ Could not check job status: ${data.error || 'Unknown error'}`;
+      resultEl.className = 'upload-result error';
+      return;
+    }
+
+    const data = await res.json();
+
+    // Show progress bar while processing
+    if (data.status === 'processing' || data.status === 'pending') {
+      try {
+        const progress = Math.min(Math.max(parseInt(data.progress) || 0, 0), 100);
+
+        // Determine stage based on progress
+        let stage = 'Initializing';
+        let stageIcon = '📦';
+        let stageDesc = 'Preparing file...';
+
+        if (progress < 25) {
+          stage = 'Validating';
+          stageIcon = '🔍';
+          stageDesc = 'Checking file format and data...';
+        } else if (progress < 50) {
+          stage = 'Parsing';
+          stageIcon = '📄';
+          stageDesc = 'Reading Excel data...';
+        } else if (progress < 75) {
+          stage = 'Processing';
+          stageIcon = '⚙️';
+          stageDesc = 'Validating and transforming records...';
+        } else if (progress < 95) {
+          stage = 'Saving';
+          stageIcon = '💾';
+          stageDesc = 'Writing to database...';
+        } else {
+          stage = 'Finalizing';
+          stageIcon = '✨';
+          stageDesc = 'Completing upload...';
+        }
+
+        // Create or update modal
+        let modal = document.getElementById('upload-progress-modal');
+        if (!modal) {
+          modal = document.createElement('div');
+          modal.id = 'upload-progress-modal';
+          document.body.appendChild(modal);
+        }
+
+        const progressHtml = `
+          <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);">
+            <div style="text-align: center; padding: 32px; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); max-width: 420px; width: 90%; animation: slideUp 0.4s ease-out;">
+            <!-- Animated Header -->
+            <div style="margin-bottom: 18px;">
+              <div style="font-size: 40px; margin-bottom: 8px; display: inline-block;">
+                <span style="animation: bounce 0.6s ease-in-out infinite, spin 2s linear infinite;">${stageIcon}</span>
+              </div>
+              <div style="margin-top: 6px;">
+                <strong style="font-size: 18px; color: #2c3e50; letter-spacing: 0.3px;">${stage}</strong>
+                <small style="display: block; color: #7f8c8d; margin-top: 2px; font-size: 10px;">Job #${jobId}</small>
+              </div>
+            </div>
+
+            <!-- Animated Progress Bar with Wave Effect -->
+            <div style="margin: 18px 0;">
+              <div style="width: 100%; background-color: #e8e8e8; border-radius: 8px; overflow: hidden; height: 12px; margin-bottom: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="width: ${progress}%; height: 100%; background: linear-gradient(90deg, #4CAF50, #45a049, #3d8b40); transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); position: relative; overflow: hidden;">
+                  <div style="position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: slide 1.5s infinite;"></div>
+                </div>
+              </div>
+              <strong style="font-size: 28px; color: #4CAF50; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${progress}%</strong>
+            </div>
+
+            <!-- Dynamic Description -->
+            <div style="margin: 12px 0; min-height: 30px;">
+              <small style="color: #666; display: block; font-size: 12px; font-weight: 500; animation: fadeInOut 2s infinite;">
+                ${stageDesc}
+              </small>
+            </div>
+
+            <!-- Animated Stage Indicators with Connectors -->
+            <div style="position: relative; margin: 20px 0;">
+              <!-- Connecting Line -->
+              <div style="position: absolute; top: 16px; left: 8%; right: 8%; height: 2px; background: linear-gradient(90deg, #e0e0e0 0%, #4CAF50 ${progress}%, #e0e0e0 ${progress}%); z-index: 0; border-radius: 1px;"></div>
+
+              <!-- Stage Circles -->
+              <div style="display: flex; justify-content: space-around; position: relative; z-index: 1; gap: 4px;">
+                ${[
+                  { threshold: 0, label: 'Validate', icon: '1️⃣' },
+                  { threshold: 25, label: 'Parse', icon: '2️⃣' },
+                  { threshold: 50, label: 'Process', icon: '3️⃣' },
+                  { threshold: 75, label: 'Save', icon: '4️⃣' },
+                  { threshold: 95, label: 'Finalize', icon: '5️⃣' }
+                ].map((step, idx) => {
+                  const isActive = progress >= step.threshold;
+                  const isCompleted = progress > step.threshold + 10;
+                  return `
+                    <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
+                      <div style="
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 50%;
+                        background: ${isCompleted ? '#4CAF50' : isActive ? '#FFD700' : '#e0e0e0'};
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 14px;
+                        margin-bottom: 4px;
+                        transition: all 0.4s ease;
+                        box-shadow: ${isActive ? '0 0 10px rgba(76, 175, 80, 0.5)' : 'none'};
+                        animation: ${isActive ? 'pulse-glow 1.5s ease-in-out infinite' : 'none'};
+                      ">
+                        ${isCompleted ? '✅' : step.icon}
+                      </div>
+                      <small style="color: ${isActive ? '#4CAF50' : '#999'}; font-size: 10px; font-weight: 600; text-align: center;">${step.label}</small>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- Timer Animation -->
+            <small style="color: #999; font-size: 11px; display: block; margin-top: 14px;">
+              <span style="animation: blink 1.5s infinite;">⏱️</span> Typically 30-60 seconds
+            </small>
+          </div>
+
+          <style>
+            @keyframes slideUp {
+              from {
+                opacity: 0;
+                transform: translateY(20px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+
+            @keyframes bounce {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-8px); }
+            }
+
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+
+            @keyframes slide {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(100%); }
+            }
+
+            @keyframes pulse-glow {
+              0%, 100% {
+                box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+                transform: scale(1);
+              }
+              50% {
+                box-shadow: 0 0 20px rgba(76, 175, 80, 0.9);
+                transform: scale(1.05);
+              }
+            }
+
+            @keyframes fadeInOut {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.6; }
+            }
+
+            @keyframes blink {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.5; }
+            }
+          </style>
+            </div>
+          </div>
+        `;
+        modal.innerHTML = progressHtml;
+        modal.style.display = 'block';
+      } catch (err) {
+        console.error('Progress display error:', err);
+        resultEl.innerHTML = `⏳ ${data.status === 'processing' ? 'Processing' : 'Queued'} (Job ID: ${jobId})`;
+        resultEl.className = 'upload-result';
+        resultEl.style.display = 'block';
+      }
+
+      // Auto-check again after 2 seconds
+      setTimeout(() => checkJobStatus(jobId, true), 2000);
+      return;
+    }
+
+    // Handle completion/failure in modal
+    const modal = document.getElementById('upload-progress-modal');
+
+    if (data.status === 'completed') {
+      // Show completion message in modal
+      let completionHtml = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);">
+          <div style="text-align: center; padding: 40px 32px; background: linear-gradient(135deg, #ffffff 0%, #f0f9f7 100%); border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); max-width: 420px; width: 90%; animation: slideUp 0.4s ease-out;">
+            <div style="font-size: 56px; margin-bottom: 16px; animation: bounce 0.6s ease-in-out;">✅</div>
+            <strong style="font-size: 22px; color: #27ae60; display: block; margin-bottom: 6px;">Upload Completed!</strong>
+            <small style="color: #7f8c8d; font-size: 12px; display: block; margin-bottom: 20px;">Job #${jobId}</small>
+
+            ${data.summary ? `
+              <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; text-align: left; margin-bottom: 16px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">
+                  <span>📋 Records Processed:</span>
+                  <strong>${data.summary.recordsProcessed}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">
+                  <span>👥 Users:</span>
+                  <strong>${data.summary.itsUpserted}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">
+                  <span>💰 Takhmeen:</span>
+                  <strong>${data.summary.takhmeenUpserted}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">
+                  <span>💳 Payments:</span>
+                  <strong>${data.summary.paymentUpserted}</strong>
+                </div>
+                ${data.summary.rowErrors > 0 ? `
+                  <div style="display: flex; justify-content: space-between; color: #e74c3c;">
+                    <span>⚠️ Errors:</span>
+                    <strong>${data.summary.rowErrors}</strong>
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+
+            <small style="color: #95a5a6; font-size: 11px; display: block;">Loading dashboard...</small>
+          </div>
+        </div>
+        <style>
+          @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+          }
+        </style>
+      `;
+
+      if (modal) {
+        modal.innerHTML = completionHtml;
+        modal.style.display = 'block';
+      } else {
+        const newModal = document.createElement('div');
+        newModal.id = 'upload-progress-modal';
+        newModal.innerHTML = completionHtml;
+        document.body.appendChild(newModal);
+      }
+
+      // Reload dashboard after 2 seconds
+      setTimeout(() => {
+        window.location.href = '/admin/dashboard.html';
+      }, 2000);
+    } else if (data.status === 'failed') {
+      // Show error in modal
+      let errorHtml = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);">
+          <div style="text-align: center; padding: 40px 32px; background: linear-gradient(135deg, #ffffff 0%, #fef5f5 100%); border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); max-width: 420px; width: 90%; animation: slideUp 0.4s ease-out;">
+            <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
+            <strong style="font-size: 20px; color: #e74c3c; display: block; margin-bottom: 12px;">Upload Failed</strong>
+            <p style="color: #7f8c8d; font-size: 13px; margin-bottom: 16px; line-height: 1.5;">${escapeHtml(data.error || 'Unknown error occurred')}</p>
+            <small style="color: #95a5a6; font-size: 11px; display: block;">Job #${jobId}</small>
+            <button onclick="location.reload()" style="margin-top: 16px; padding: 8px 20px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Try Again</button>
+          </div>
+        </div>
+        <style>
+          @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        </style>
+      `;
+
+      if (modal) {
+        modal.innerHTML = errorHtml;
+        modal.style.display = 'block';
+      } else {
+        const newModal = document.createElement('div');
+        newModal.id = 'upload-progress-modal';
+        newModal.innerHTML = errorHtml;
+        document.body.appendChild(newModal);
+      }
+    }
+  } catch (err) {
+    console.error('Job status check error:', err);
+    resultEl.innerHTML = `❌ Error checking job status: ${err.message || 'Unknown error'}`;
+    resultEl.className = 'upload-result error';
+    resultEl.style.display = 'block';
+  }
+}
+
 async function handleCombinedUpload(e) {
   e.preventDefault();
+
   const resultEl = document.getElementById('combinedUploadResult');
   const submitBtn = e.target.querySelector('button');
-
   const files = droppedFiles['combinedFileInput'] || document.getElementById('combinedFileInput')?.files;
 
   if (!files || !files.length) {
-    resultEl.textContent = '❌ Choose a file first.';
+    resultEl.innerHTML = '❌ Choose a file first.';
     resultEl.className = 'upload-result error';
     resultEl.style.display = 'block';
     return;
@@ -392,45 +719,87 @@ async function handleCombinedUpload(e) {
   const formData = new FormData();
   formData.append('file', files[0]);
 
-  resultEl.textContent = '⏳ Uploading combined FMB data...';
+  resultEl.innerHTML = '⏳ Uploading...';
   resultEl.className = 'upload-result';
   resultEl.style.display = 'block';
   submitBtn.disabled = true;
 
   try {
-    const res = await fetchWithTimeout('/api/admin/upload-combined', { method: 'POST', body: formData }, 60000);
-    const data = await res.json();
+    console.log('🚀 UPLOAD START');
+    console.log('   File:', files[0].name);
+    console.log('   Size:', files[0].size, 'bytes');
 
-    if (!res.ok) {
-      resultEl.textContent = '❌ ' + (data.error || 'Upload failed.');
+    console.log('\n📤 Sending fetch request to /api/admin/upload-combined...');
+
+    const response = await fetch('/api/admin/upload-combined', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'  // IMPORTANT: Include cookies
+    });
+
+    console.log('\n📨 Response received');
+    console.log('   Status:', response.status, response.statusText);
+    console.log('   Content-Type:', response.headers.get('content-type'));
+
+    if (!response.ok) {
+      console.error('\n❌ Response Status Error:', response.status);
+      try {
+        const errorData = await response.text();
+        console.error('   Response text:', errorData.substring(0, 200));
+        const data = JSON.parse(errorData);
+        resultEl.innerHTML = `❌ Error: ${data.error || 'Upload failed (HTTP ' + response.status + ')'}`;
+      } catch (e) {
+        resultEl.innerHTML = `❌ Server error: ${response.status} ${response.statusText}`;
+      }
       resultEl.className = 'upload-result error';
+      submitBtn.disabled = false;
       return;
     }
 
-    let resultMessage = `✅ Upload completed successfully<br>📊 Summary:`;
-    resultMessage += `<br>  • Records processed: ${data.summary.recordsProcessed}`;
-    resultMessage += `<br>  • ITS updated/inserted: ${data.summary.itsUpserted}`;
-    resultMessage += `<br>  • Takhmeen updated/inserted: ${data.summary.takhmeenUpserted}`;
-    resultMessage += `<br>  • Payments updated/inserted: ${data.summary.paymentUpserted}`;
-    resultMessage += `<br>  • Row errors: ${data.summary.rowErrors}`;
+    let data;
+    try {
+      const responseText = await response.text();
+      console.log('   Response length:', responseText.length);
+      console.log('   Response preview:', responseText.substring(0, 100));
 
-    if (data.warnings && data.warnings.length > 0) {
-      resultMessage += `<br>⚠️ ${data.warnings.length} issue(s):`;
-      data.warnings.forEach(warn => {
-        resultMessage += `<br>  • ${escapeHtml(warn)}`;
-      });
+      data = JSON.parse(responseText);
+      console.log('\n✅ Response parsed successfully');
+      console.log('   jobId:', data.jobId);
+      console.log('   status:', data.status);
+    } catch (parseErr) {
+      console.error('\n❌ JSON Parse Error:', parseErr.message);
+      resultEl.innerHTML = `❌ Invalid response from server`;
+      resultEl.className = 'upload-result error';
+      submitBtn.disabled = false;
+      return;
     }
 
-    resultEl.innerHTML = resultMessage;
-    resultEl.className = data.summary.rowErrors === 0 ? 'upload-result success' : 'upload-result warning';
+    if (!data.jobId) {
+      console.error('\n❌ Missing jobId in response:', data);
+      resultEl.innerHTML = `❌ Invalid response: missing jobId`;
+      resultEl.className = 'upload-result error';
+      submitBtn.disabled = false;
+      return;
+    }
+
+    console.log('\n🎉 UPLOAD SUCCESSFUL');
+    console.log('   Job ID:', data.jobId);
 
     droppedFiles['combinedFileInput'] = null;
     const fileInput = document.getElementById('combinedFileInput');
     if (fileInput) fileInput.value = '';
+
+    console.log('\n📊 Starting status check...');
+    checkJobStatus(data.jobId);
+
   } catch (err) {
-    resultEl.textContent = '❌ Network error during upload.';
+    console.error('\n❌ FETCH ERROR');
+    console.error('   Type:', err.name);
+    console.error('   Message:', err.message);
+    console.error('   Stack:', err.stack);
+
+    resultEl.innerHTML = `❌ Network error: ${err.message}`;
     resultEl.className = 'upload-result error';
-  } finally {
     submitBtn.disabled = false;
   }
 }

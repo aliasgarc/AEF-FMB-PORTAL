@@ -1,5 +1,5 @@
 // Shared utility: Fetch with timeout capability
-async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 120000) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -10,7 +10,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      throw new Error('Request timed out. Please check your connection and try again.');
+      throw new Error('⏱️ Request timed out (120 seconds). Network may be slow or file too large. Please try again.');
     }
     throw error;
   }
