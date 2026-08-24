@@ -608,7 +608,8 @@ function renderResult(data) {
   // Check for app updates (initial + periodic every 5 minutes)
   checkForAppUpdate(currentItsId);
   if (window.PWAUtils) {
-    PWAUtils.startPeriodicUpdateCheck(APP_VERSION, currentItsId, 'user', 300000);
+    // Pass displayUpdateBanner as callback to show updates when periodic check finds them
+    PWAUtils.startPeriodicUpdateCheck(APP_VERSION, currentItsId, 'user', 300000, displayUpdateBanner);
     // Track installation for analytics
     PWAUtils.trackInstallation(currentItsId, APP_VERSION);
   }

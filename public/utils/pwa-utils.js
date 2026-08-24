@@ -79,19 +79,27 @@ const PWAUtils = {
    * @param {string} itsId - User ID
    * @param {string} appType - 'user' or 'admin'
    * @param {number} intervalMs - Check interval in milliseconds (default 5 min)
+   * @param {function} displayCallback - Optional callback to display update banner when found
    */
-  startPeriodicUpdateCheck(currentVersion, itsId, appType = 'user', intervalMs = 300000) {
+  startPeriodicUpdateCheck(currentVersion, itsId, appType = 'user', intervalMs = 300000, displayCallback = null) {
     if (!itsId) {
       console.warn('[PWA] Cannot start periodic updates: no itsId provided');
       return;
     }
 
     // Initial check
-    this.checkForUpdates(currentVersion, itsId, appType);
+    this.checkForUpdates(currentVersion, itsId, appType).then(updateInfo => {
+      if (updateInfo && updateInfo.hasUpdate && displayCallback) {
+        displayCallback(updateInfo);
+      }
+    });
 
-    // Periodic checks
-    const intervalId = setInterval(() => {
-      this.checkForUpdates(currentVersion, itsId, appType);
+    // Periodic checks - display update when found
+    const intervalId = setInterval(async () => {
+      const updateInfo = await this.checkForUpdates(currentVersion, itsId, appType);
+      if (updateInfo && updateInfo.hasUpdate && displayCallback) {
+        displayCallback(updateInfo);
+      }
     }, intervalMs);
 
     // Return interval ID in case caller needs to stop it

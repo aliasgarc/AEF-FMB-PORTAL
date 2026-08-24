@@ -110,7 +110,12 @@ async function init() {
 
   // Start periodic update checking (every 5 minutes)
   if (window.PWAUtils && me && me.admin && me.admin.id) {
-    PWAUtils.startPeriodicUpdateCheck(APP_VERSION, me.admin.id, 'admin', 300000);
+    // Simple callback to log when updates are found (admin page can be extended with UI later)
+    PWAUtils.startPeriodicUpdateCheck(APP_VERSION, me.admin.id, 'admin', 300000, (updateInfo) => {
+      if (updateInfo.hasUpdate) {
+        console.log(`[Admin] Update available: ${APP_VERSION} → ${updateInfo.currentVersion}`);
+      }
+    });
     // Track installation for analytics
     PWAUtils.trackInstallation(me.admin.id, APP_VERSION);
   }
