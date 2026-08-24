@@ -307,18 +307,26 @@ function renderUsers(users) {
     const received = currency(u.amount_received || 0);
     const pending = currency(u.amount_pending || 0);
     const outstanding = currency(u.outstanding || 0);
+    const pendingPercent = u.pending_percentage ? Number(u.pending_percentage).toFixed(1) : '0.0';
     const outstandingColor = Number(u.outstanding) > 0 ? '#ef4444' : '#22c55e';
+
+    // Color code pending percentage
+    let pendingPercentColor = '#22c55e';  // green for 0-25%
+    if (pendingPercent > 25 && pendingPercent <= 50) pendingPercentColor = '#f59e0b';  // orange for 25-50%
+    if (pendingPercent > 50 && pendingPercent <= 75) pendingPercentColor = '#ef8b45';  // orange-red for 50-75%
+    if (pendingPercent > 75) pendingPercentColor = '#dc2626';  // red for 75-100%
 
     html += `
       <tr>
-        <td><strong>${itsId}</strong></td>
-        <td><strong>${name}</strong></td>
-        <td>${mobile}</td>
-        <td>${sector}</td>
+        <td style="text-align: left;"><strong>${itsId}</strong></td>
+        <td style="text-align: left;"><strong>${name}</strong></td>
+        <td style="text-align: left;">${mobile}</td>
+        <td style="text-align: left;">${sector}</td>
         <td style="text-align: right; font-weight: 600;">₹${billed}</td>
         <td style="text-align: right; color: #f59e0b; font-weight: 600;">₹${previousDue}</td>
         <td style="text-align: right; color: #22c55e; font-weight: 600;">₹${received}</td>
         <td style="text-align: right; color: #f59e0b; font-weight: 600;">₹${pending}</td>
+        <td style="text-align: right; color: ${pendingPercentColor}; font-weight: 700;">${pendingPercent}%</td>
         <td style="text-align: right; color: ${outstandingColor}; font-weight: 700;">₹${outstanding}</td>
       </tr>
     `;
