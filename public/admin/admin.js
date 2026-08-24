@@ -307,7 +307,10 @@ function renderUsers(users) {
     const received = currency(u.amount_received || 0);
     const pending = currency(u.amount_pending || 0);
     const outstanding = currency(u.outstanding || 0);
-    const pendingPercent = u.pending_percentage ? Number(u.pending_percentage).toFixed(1) : '0.0';
+    // Handle pending percentage - convert to number, handle null/undefined
+    const pendingPercent = (u.pending_percentage !== null && u.pending_percentage !== undefined)
+      ? Number(u.pending_percentage).toFixed(1)
+      : '0.0';
     const outstandingColor = Number(u.outstanding) > 0 ? '#ef4444' : '#22c55e';
 
     // Color code pending percentage
