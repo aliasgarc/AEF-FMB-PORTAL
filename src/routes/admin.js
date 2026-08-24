@@ -101,9 +101,77 @@ router.get('/stats', requireAdmin, async (req, res) => {
 
 // ---------------------------------------------------------------
 // GET /api/admin/users — list of all users with Takhmeen + payment summary
+// ENHANCED: Supports search, filtering, and sorting
+// Query params: search, status, minAmount, maxAmount, city, sector, sortBy, sortDir
 // ---------------------------------------------------------------
 router.get('/users', requireAdmin, async (req, res) => {
   try {
+    const {
+      search = '',
+      status = '',
+      minAmount = 0,
+      maxAmount = 999999999,
+      city = '',
+      sector = '',
+      sortBy = 'outstanding',
+      sortDir = 'desc'
+    } = req.query;
+
+    // Build WHERE clause for filtering
+    let whereConditions = [];
+    let params = [];
+    let paramCount = 1;
+
+    // Search filter (ITS ID, Sabeel No, Name, Mobile, Email)
+    if (search && search.trim()) {
+      whereConditions.push(
+        `(u.its_id ILIKE $${paramCount} OR u.sabil_no ILIKE $${paramCount} OR u.name ILIKE $${paramCount} OR u.mobile ILIKE $${paramCount} OR u.email ILIKE $${paramCount})`
+      );
+      params.push(`%${search}%`);
+      paramCount++;
+    }
+
+    // Status filter (Pending, Paid, Overdue)
+    if (status) {
+      if (status === 'pending') {
+        whereConditions.push(`(COALESCE(SUM(pt.amt_pending), 0) > 0)`);
+      } else if (status === 'paid') {
+        whereConditions.push(`(COALESCE(SUM(pt.amt_rcv), 0) > 0 AND COALESCE(SUM(pt.amt_pending), 0) = 0)`);
+      } else if (status === 'overdue') {
+        whereConditions.push(`(COALESCE(SUM(pt.amt_pending), 0) > 0)`);
+      }
+    }
+
+    // Amount range filter
+    whereConditions.push(`(COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) >= $${paramCount})`);
+    params.push(minAmount);
+    paramCount++;
+
+    whereConditions.push(`(COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) <= $${paramCount})`);
+    params.push(maxAmount);
+    paramCount++;
+
+    // City filter
+    if (city && city.trim()) {
+      whereConditions.push(`u.city ILIKE $${paramCount}`);
+      params.push(`%${city}%`);
+      paramCount++;
+    }
+
+    // Sector filter
+    if (sector && sector.trim()) {
+      whereConditions.push(`u.sector ILIKE $${paramCount}`);
+      params.push(`%${sector}%`);
+      paramCount++;
+    }
+
+    // Validate sortBy to prevent SQL injection
+    const validSortFields = ['outstanding', 'total_billed', 'amount_received', 'amount_pending', 'name', 'its_id', 'mobile'];
+    const finalSortBy = validSortFields.includes(sortBy) ? sortBy : 'outstanding';
+    const finalSortDir = sortDir.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
     const result = await db.query(`
       SELECT
         u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector,
@@ -115,13 +183,104 @@ router.get('/users', requireAdmin, async (req, res) => {
       FROM fmb_its_tbl u
       LEFT JOIN fmb_takhmeen t ON t.hof_its = u.its_id
       LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = CAST(u.its_id AS INTEGER)
+      ${whereClause}
       GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt, t.previous_amount_due
-      ORDER BY COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) DESC, COALESCE(SUM(pt.amt_rcv), 0) DESC, COALESCE(SUM(pt.amt_pending), 0) DESC, outstanding DESC
-    `);
-    res.json({ users: result.rows });
+      ORDER BY ${finalSortBy} ${finalSortDir}
+      LIMIT 1000
+    `, params);
+
+    res.json({ users: result.rows, count: result.rows.length });
   } catch (err) {
     console.error('List users error:', err);
     res.status(500).json({ error: 'Failed to fetch users.' });
+  }
+});
+
+// ---------------------------------------------------------------
+// GET /api/admin/users/export/csv — Export filtered users as CSV
+// ---------------------------------------------------------------
+router.get('/users/export/csv', requireAdmin, async (req, res) => {
+  try {
+    const {
+      search = '',
+      status = '',
+      minAmount = 0,
+      maxAmount = 999999999,
+      city = '',
+      sector = ''
+    } = req.query;
+
+    // Build WHERE clause (same as /users endpoint)
+    let whereConditions = [];
+    let params = [];
+    let paramCount = 1;
+
+    if (search && search.trim()) {
+      whereConditions.push(
+        `(u.its_id ILIKE $${paramCount} OR u.sabil_no ILIKE $${paramCount} OR u.name ILIKE $${paramCount} OR u.mobile ILIKE $${paramCount} OR u.email ILIKE $${paramCount})`
+      );
+      params.push(`%${search}%`);
+      paramCount++;
+    }
+
+    if (status) {
+      if (status === 'pending' || status === 'overdue') {
+        whereConditions.push(`(COALESCE(SUM(pt.amt_pending), 0) > 0)`);
+      } else if (status === 'paid') {
+        whereConditions.push(`(COALESCE(SUM(pt.amt_rcv), 0) > 0 AND COALESCE(SUM(pt.amt_pending), 0) = 0)`);
+      }
+    }
+
+    whereConditions.push(`(COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) >= $${paramCount})`);
+    params.push(minAmount);
+    paramCount++;
+
+    whereConditions.push(`(COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) <= $${paramCount})`);
+    params.push(maxAmount);
+    paramCount++;
+
+    if (city && city.trim()) {
+      whereConditions.push(`u.city ILIKE $${paramCount}`);
+      params.push(`%${city}%`);
+      paramCount++;
+    }
+
+    if (sector && sector.trim()) {
+      whereConditions.push(`u.sector ILIKE $${paramCount}`);
+      params.push(`%${sector}%`);
+      paramCount++;
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const result = await db.query(`
+      SELECT
+        u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector,
+        COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0)::numeric(12,2) AS total_billed,
+        COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0)::numeric(12,2) AS previous_amount_due,
+        COALESCE(SUM(pt.amt_rcv), 0)::numeric(12,2) AS amount_received,
+        COALESCE(SUM(pt.amt_pending), 0)::numeric(12,2) AS amount_pending,
+        (COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0) + COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding
+      FROM fmb_its_tbl u
+      LEFT JOIN fmb_takhmeen t ON t.hof_its = u.its_id
+      LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = CAST(u.its_id AS INTEGER)
+      ${whereClause}
+      GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt, t.previous_amount_due
+      ORDER BY outstanding DESC
+    `, params);
+
+    // Build CSV content
+    let csv = 'ITS ID,Sabeel No,Name,Mobile,Email,City,Sector,Total Billed,Previous Due,Amount Received,Amount Pending,Outstanding\n';
+    result.rows.forEach(row => {
+      csv += `"${row.its_id}","${row.sabil_no || ''}","${row.name}","${row.mobile || ''}","${row.email || ''}","${row.city || ''}","${row.sector || ''}",${row.total_billed},${row.previous_amount_due},${row.amount_received},${row.amount_pending},${row.outstanding}\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="users-export-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    console.error('Export users error:', err);
+    res.status(500).json({ error: 'Failed to export users.' });
   }
 });
 

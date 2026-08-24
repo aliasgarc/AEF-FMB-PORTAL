@@ -121,11 +121,39 @@ async function init() {
   }
 }
 
+// Get current filter values
+function getActiveFilters() {
+  return {
+    search: document.getElementById('userSearch')?.value || '',
+    status: document.getElementById('statusFilter')?.value || '',
+    city: document.getElementById('cityFilter')?.value || '',
+    sector: document.getElementById('sectorFilter')?.value || '',
+    minAmount: document.getElementById('minAmountFilter')?.value || '0',
+    maxAmount: document.getElementById('maxAmountFilter')?.value || '999999999'
+  };
+}
+
+// Build API URL with filters
+function buildUsersUrl() {
+  const filters = getActiveFilters();
+  const params = new URLSearchParams();
+
+  if (filters.search) params.append('search', filters.search);
+  if (filters.status) params.append('status', filters.status);
+  if (filters.city) params.append('city', filters.city);
+  if (filters.sector) params.append('sector', filters.sector);
+  if (filters.minAmount) params.append('minAmount', filters.minAmount);
+  if (filters.maxAmount) params.append('maxAmount', filters.maxAmount);
+
+  return `/api/admin/users${params.toString() ? '?' + params.toString() : ''}`;
+}
+
 async function loadUsers() {
   try {
     // Fetch both user list and stats in parallel for better mobile performance
+    const usersUrl = buildUsersUrl();
     const [usersRes, statsRes] = await Promise.all([
-      fetchWithTimeout('/api/admin/users'),
+      fetchWithTimeout(usersUrl),
       fetchWithTimeout('/api/admin/stats')
     ]);
 
@@ -827,5 +855,55 @@ window.addEventListener('load', () => {
   if (exportBtn) exportBtn.addEventListener('click', exportAnalyticsCSV);
   if (reportBtn) reportBtn.addEventListener('click', generateAnalyticsReport);
   if (filterBtn) filterBtn.addEventListener('click', loadAnalytics);
+
+  // Search and filter event listeners
+  const userSearch = document.getElementById('userSearch');
+  const statusFilter = document.getElementById('statusFilter');
+  const cityFilter = document.getElementById('cityFilter');
+  const sectorFilter = document.getElementById('sectorFilter');
+  const minAmountFilter = document.getElementById('minAmountFilter');
+  const maxAmountFilter = document.getElementById('maxAmountFilter');
+  const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+  const exportUsersCsvBtn = document.getElementById('exportBtn');
+
+  // Real-time search
+  if (userSearch) {
+    userSearch.addEventListener('input', (e) => {
+      clearTimeout(userSearch._debounceTimer);
+      userSearch._debounceTimer = setTimeout(() => loadUsers(), 300);
+    });
+  }
+
+  // Filter changes
+  if (statusFilter) statusFilter.addEventListener('change', loadUsers);
+  if (cityFilter) cityFilter.addEventListener('change', loadUsers);
+  if (sectorFilter) sectorFilter.addEventListener('change', loadUsers);
+
+  // Apply amount range filter
+  if (applyFiltersBtn) {
+    applyFiltersBtn.addEventListener('click', loadUsers);
+  }
+
+  // Clear all filters
+  if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', () => {
+      if (userSearch) userSearch.value = '';
+      if (statusFilter) statusFilter.value = '';
+      if (cityFilter) cityFilter.value = '';
+      if (sectorFilter) sectorFilter.value = '';
+      if (minAmountFilter) minAmountFilter.value = '0';
+      if (maxAmountFilter) maxAmountFilter.value = '999999999';
+      loadUsers();
+    });
+  }
+
+  // Export filtered users as CSV
+  if (exportUsersCsvBtn) {
+    exportUsersCsvBtn.addEventListener('click', () => {
+      const params = new URLSearchParams(getActiveFilters());
+      window.location.href = `/api/admin/users/export/csv${params.toString() ? '?' + params.toString() : ''}`;
+    });
+  }
 });
 
