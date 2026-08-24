@@ -600,12 +600,12 @@ async function loadAnalytics() {
       versionDiv.innerHTML = stats.topVersions.map(v => {
         const percentage = Math.round((v.count / maxCount) * 100);
         return `
-          <div style="margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <strong>v${v.app_version}</strong>
-              <span style="color: #666; font-size: 12px;">${v.count} users (${Math.round((v.count / (stats.totalInstallations || 1)) * 100)}%)</span>
+          <div style="margin-bottom: 16px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; align-items: center;">
+              <strong style="font-size: 14px;">v${v.app_version}</strong>
+              <span style="color: #666; font-size: 11px; word-break: break-word;">${v.count} users (${Math.round((v.count / (stats.totalInstallations || 1)) * 100)}%)</span>
             </div>
-            <div style="width: 100%; height: 24px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+            <div style="width: 100%; height: 22px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
               <div style="
                 width: ${percentage}%;
                 height: 100%;
@@ -637,16 +637,17 @@ async function loadAnalytics() {
           <div style="
             display: flex;
             align-items: center;
-            padding: 12px;
+            padding: 12px 10px;
             background: white;
             border-radius: 6px;
             margin-bottom: 8px;
             border-left: 4px solid #3c7441;
+            word-break: break-word;
           ">
-            <span style="font-size: 20px; margin-right: 12px;">${icon}</span>
-            <div style="flex-grow: 1;">
-              <strong style="text-transform: capitalize;">${m.detection_method}</strong>
-              <div style="font-size: 12px; color: #999;">${m.count} users</div>
+            <span style="font-size: 18px; margin-right: 10px; flex-shrink: 0;">${icon}</span>
+            <div style="flex-grow: 1; min-width: 0;">
+              <strong style="text-transform: capitalize; font-size: 14px; display: block;">${m.detection_method}</strong>
+              <div style="font-size: 11px; color: #999; margin-top: 2px;">${m.count} users</div>
             </div>
           </div>
         `;
