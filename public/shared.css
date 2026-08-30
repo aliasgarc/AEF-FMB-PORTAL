@@ -41,9 +41,9 @@ html {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(60, 116, 65, 0.1);
-  border: 1px solid rgba(60, 116, 65, 0.2);
-  color: var(--text-lighter);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
@@ -51,17 +51,19 @@ html {
   letter-spacing: 0.3px;
   transition: all 0.3s ease;
   cursor: default;
+  backdrop-filter: blur(4px);
 }
 
 .version-badge:hover {
-  background: rgba(60, 116, 65, 0.15);
-  border-color: rgba(60, 116, 65, 0.3);
-  color: var(--blue);
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .version-badge-icon {
   font-size: 10px;
-  opacity: 0.7;
+  opacity: 0.9;
 }
 
 body {
