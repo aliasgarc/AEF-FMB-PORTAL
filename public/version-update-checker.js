@@ -1,0 +1,156 @@
+// Version Update Checker - Shows notification if new version available
+async function checkForUpdates() {
+  try {
+    const currentVersion = document.querySelector('meta[name="app-version"]')?.content;
+    if (!currentVersion) return;
+
+    const response = await fetch('/api/app/version');
+    if (!response.ok) return;
+
+    const data = await response.json();
+    const latestVersion = data.version;
+
+    if (currentVersion !== latestVersion) {
+      showUpdateNotification(currentVersion, latestVersion);
+    }
+  } catch (err) {
+    console.warn('[Version Check] Could not check for updates:', err);
+  }
+}
+
+function showUpdateNotification(currentVersion, latestVersion) {
+  // Check if user already dismissed this update
+  const dismissedVersion = localStorage.getItem('dismissedUpdateVersion');
+  if (dismissedVersion === latestVersion) return;
+
+  // Remove existing notification if any
+  const existingNotification = document.getElementById('versionUpdateNotification');
+  if (existingNotification) {
+    existingNotification.remove();
+  }
+
+  // Create notification banner
+  const notification = document.createElement('div');
+  notification.id = 'versionUpdateNotification';
+  notification.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    padding: 16px 24px;
+    box-shadow: 0 10px 30px rgba(217, 119, 6, 0.3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    z-index: 9999;
+    font-size: 14px;
+    backdrop-filter: blur(10px);
+    animation: slideDown 0.4s ease-out;
+  `;
+
+  notification.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+      <span style="font-size: 20px;">🔄</span>
+      <div>
+        <strong style="font-weight: 700;">New Version Available!</strong>
+        <div style="font-size: 13px; opacity: 0.95; margin-top: 2px;">
+          Update from v${currentVersion} → v${latestVersion} for latest features
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; white-space: nowrap;">
+      <button id="updateNowBtn" style="
+        background: white;
+        color: #d97706;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.3s ease;
+      " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">
+        Update Now
+      </button>
+      <button id="dismissUpdateBtn" style="
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.3s ease;
+      " onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
+        Later
+      </button>
+    </div>
+  `;
+
+  document.body.insertBefore(notification, document.body.firstChild);
+
+  // Update Now button - refresh page
+  document.getElementById('updateNowBtn').addEventListener('click', () => {
+    // Clear old caches and reload
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
+        window.location.reload(true);
+      });
+    } else {
+      window.location.reload(true);
+    }
+  });
+
+  // Dismiss button
+  document.getElementById('dismissUpdateBtn').addEventListener('click', () => {
+    localStorage.setItem('dismissedUpdateVersion', latestVersion);
+    notification.style.animation = 'slideUp 0.4s ease-out forwards';
+    setTimeout(() => notification.remove(), 400);
+  });
+}
+
+// Add slideDown animation if not already in CSS
+if (!document.querySelector('style[data-version-checker]')) {
+  const style = document.createElement('style');
+  style.setAttribute('data-version-checker', 'true');
+  style.textContent = `
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-100%);
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Check for updates on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(checkForUpdates, 1000); // Check after 1 second
+  });
+} else {
+  setTimeout(checkForUpdates, 1000);
+}
+
+console.log('[Update Checker] Initialized');
