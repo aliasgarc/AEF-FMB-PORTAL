@@ -19,9 +19,12 @@ async function checkForUpdates() {
 }
 
 function showUpdateNotification(currentVersion, latestVersion) {
-  // Check if user already dismissed this update
-  const dismissedVersion = localStorage.getItem('dismissedUpdateVersion');
-  if (dismissedVersion === latestVersion) return;
+  // Check if user dismissed in THIS session only (sessionStorage)
+  const dismissedThisSession = sessionStorage.getItem('dismissedUpdateVersion');
+  if (dismissedThisSession === latestVersion) {
+    console.log('[Update Checker] Update dismissed this session, not showing');
+    return;
+  }
 
   // Remove existing notification if any
   const existingNotification = document.getElementById('versionUpdateNotification');
@@ -93,24 +96,55 @@ function showUpdateNotification(currentVersion, latestVersion) {
 
   document.body.insertBefore(notification, document.body.firstChild);
 
-  // Update Now button - refresh page
-  document.getElementById('updateNowBtn').addEventListener('click', () => {
-    // Clear old caches and reload
-    if ('caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => caches.delete(name));
-        window.location.reload(true);
-      });
-    } else {
-      window.location.reload(true);
+  // Update Now button - clear cache, update app, remove notification
+  document.getElementById('updateNowBtn').addEventListener('click', async () => {
+    const updateBtn = document.getElementById('updateNowBtn');
+    const dismissBtn = document.getElementById('dismissUpdateBtn');
+
+    // Disable buttons during update
+    updateBtn.disabled = true;
+    dismissBtn.disabled = true;
+    updateBtn.textContent = '⏳ Updating...';
+
+    // Clear localStorage/sessionStorage for dismissed updates
+    localStorage.removeItem('dismissedUpdateVersion');
+    sessionStorage.removeItem('dismissedUpdateVersion');
+
+    try {
+      // Clear all service worker caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        console.log('[Update Checker] Cleared all caches');
+      }
+
+      // Clear sessionStorage (fresh start)
+      sessionStorage.clear();
+
+      // Hard reload to fetch fresh content
+      console.log('[Update Checker] Reloading with fresh cache...');
+      window.location.replace(window.location.href);
+    } catch (err) {
+      console.error('[Update Checker] Error during update:', err);
+      updateBtn.textContent = 'Update Now';
+      updateBtn.disabled = false;
+      dismissBtn.disabled = false;
     }
   });
 
-  // Dismiss button
+  // Later button - dismiss for THIS SESSION ONLY
   document.getElementById('dismissUpdateBtn').addEventListener('click', () => {
-    localStorage.setItem('dismissedUpdateVersion', latestVersion);
+    // Only dismiss for current session (not persistent)
+    sessionStorage.setItem('dismissedUpdateVersion', latestVersion);
+
     notification.style.animation = 'slideUp 0.4s ease-out forwards';
-    setTimeout(() => notification.remove(), 400);
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 400);
+
+    console.log('[Update Checker] Update dismissed for this session. Will show again on next app open.');
   });
 }
 
