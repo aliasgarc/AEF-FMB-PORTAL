@@ -241,14 +241,116 @@ self.addEventListener('push', (event) => {
   }
 });
 
+// Handle push notifications (targeted push notifications from admin)
+self.addEventListener('push', (event) => {
+  console.log('[ServiceWorker] Push notification received');
+
+  if (!event.data) {
+    console.log('[ServiceWorker] No data in push event');
+    return;
+  }
+
+  try {
+    const data = event.data.json();
+    const {
+      title = '🔔 Notification',
+      message = 'You have a new message',
+      push_notification_id,
+      its_id,
+      message_type = 'custom'
+    } = data;
+
+    // Format notification based on message type
+    let notificationTitle = title;
+    let notificationBody = message;
+
+    const notificationOptions = {
+      body: notificationBody,
+      icon: '/fmb-logo-192.png',
+      badge: '/fmb-logo-192.png',
+      tag: `push-notification-${push_notification_id || Date.now()}`,
+      requireInteraction: false,
+      data: {
+        push_notification_id,
+        its_id,
+        message_type,
+        url: '/user/'
+      },
+      actions: [
+        {
+          action: 'open',
+          title: '📖 Open',
+          icon: '/fmb-logo-192.png'
+        },
+        {
+          action: 'close',
+          title: 'Dismiss',
+          icon: '/fmb-logo-192.png'
+        }
+      ]
+    };
+
+    // Log notification details
+    console.log(`[ServiceWorker] Showing push notification:`, {
+      title: notificationTitle,
+      message: notificationBody,
+      type: message_type,
+      to_user: its_id
+    });
+
+    event.waitUntil(
+      self.registration.showNotification(notificationTitle, notificationOptions)
+        .then(() => {
+          // Report delivery status to server
+          if (push_notification_id && its_id) {
+            fetch('/api/push/mark-delivered', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                push_notification_id,
+                its_id
+              })
+            }).catch(err => console.warn('[ServiceWorker] Could not report delivery:', err));
+          }
+        })
+    );
+  } catch (err) {
+    console.error('[ServiceWorker] Error handling push:', err);
+    // Fallback notification
+    event.waitUntil(
+      self.registration.showNotification('🔔 FMB Notification', {
+        body: 'You have a new notification from the system',
+        icon: '/fmb-logo-192.png',
+        badge: '/fmb-logo-192.png',
+        requireInteraction: false
+      })
+    );
+  }
+});
+
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
   console.log('[ServiceWorker] Notification clicked:', event.action);
   event.notification.close();
 
+  const notificationData = event.notification.data || {};
+  const { push_notification_id, its_id } = notificationData;
+
   // Don't open for "close" action
   if (event.action === 'close') {
     return;
+  }
+
+  // Mark as read when user clicks
+  if (push_notification_id && its_id) {
+    fetch('/api/push/mark-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        push_notification_id,
+        its_id
+      })
+    }).catch(err => console.warn('[ServiceWorker] Could not mark as read:', err));
   }
 
   // Open the app and go to user portal
