@@ -497,4 +497,47 @@ router.get('/payments/:hofIts', requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/admin/setup-push-notifications - Initialize push notification tables
+router.post('/setup-push-notifications', async (req, res) => {
+  try {
+    console.log('Setting up push notifications tables...');
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS push_notifications (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        message_type VARCHAR(50) NOT NULL,
+        created_by VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN DEFAULT true
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS push_notification_recipients (
+        id SERIAL PRIMARY KEY,
+        push_notification_id INTEGER NOT NULL REFERENCES push_notifications(id) ON DELETE CASCADE,
+        its_id VARCHAR(50) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        delivered_at TIMESTAMP,
+        read_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_push_notifications_created_by ON push_notifications(created_by)`);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_push_notifications_created_at ON push_notifications(created_at)`);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_push_notification_recipients_push_id ON push_notification_recipients(push_notification_id)`);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_push_notification_recipients_its_id ON push_notification_recipients(its_id)`);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_push_notification_recipients_status ON push_notification_recipients(status)`);
+
+    console.log('✅ Push notifications tables initialized');
+    res.json({ success: true, message: 'Push notifications initialized' });
+  } catch (err) {
+    console.error('Error setting up push notifications:', err);
+    res.status(500).json({ error: 'Failed to setup push notifications' });
+  }
+});
+
 module.exports = router;
