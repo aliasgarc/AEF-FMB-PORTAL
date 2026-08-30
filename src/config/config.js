@@ -1,7 +1,7 @@
 // Centralized configuration for the application
 module.exports = {
   // Application version - update on each release
-  APP_VERSION: process.env.APP_VERSION || '1.2.0',
+  APP_VERSION: process.env.APP_VERSION || '1.2.1',
 
   // File uploads
   MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || 10 * 1024 * 1024, // 10 MB default
