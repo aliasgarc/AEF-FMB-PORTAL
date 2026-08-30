@@ -877,6 +877,16 @@
       padding: 0 16px;
     }
 
+    .user-header-content > div {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .version-badge {
+      font-size: 11px;
+      padding: 3px 10px;
+    }
+
     .header-logo {
       gap: 12px;
     }
@@ -1220,19 +1230,25 @@
   <!-- Modern Header -->
   <header class="user-header">
     <div class="user-header-content">
-      <div class="header-logo">
-        <div class="logo-container">
-          <img src="/fmb-logo.png" alt="Faiz Ul Mawaid Il Burhaniyah" class="main-logo" onload="document.querySelectorAll('.logo-fallback')[0].style.display='none'" onerror="this.style.display='none'">
-          <div class="logo-fallback" style="display: block;">
-            <div class="logo-text">FMB</div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="header-logo">
+          <div class="logo-container">
+            <img src="/fmb-logo.png" alt="Faiz Ul Mawaid Il Burhaniyah" class="main-logo" onload="document.querySelectorAll('.logo-fallback')[0].style.display='none'" onerror="this.style.display='none'">
+            <div class="logo-fallback" style="display: block;">
+              <div class="logo-text">FMB</div>
+            </div>
+          </div>
+          <div>
+            <h1>AEF-FMB-Portal</h1>
+            <p>Track your dues & payments</p>
+            <div class="developer-credit" style="margin-top: 8px; border: none; padding: 0;">
+              Developed by <a href="https://www.cyphrontech.com/" target="_blank" rel="noopener">Cyphrontech LLP</a>
+            </div>
           </div>
         </div>
-        <div>
-          <h1>AEF-FMB-Portal</h1>
-          <p>Track your dues & payments</p>
-          <div class="developer-credit" style="margin-top: 8px; border: none; padding: 0;">
-            Developed by <a href="https://www.cyphrontech.com/" target="_blank" rel="noopener">Cyphrontech LLP</a>
-          </div>
+        <div class="version-badge" id="userVersionBadge" style="white-space: nowrap;">
+          <span class="version-badge-icon">📦</span>
+          <span id="userVersionText">v1.2.1</span>
         </div>
       </div>
     </div>
@@ -1379,6 +1395,7 @@
   <script src="/utils/fetch-utils.js"></script>
   <script src="/utils/formatters.js"></script>
   <script src="/utils/pwa-utils.js"></script>
+  <script src="/version-display.js"></script>
   <script src="/user/user.js"></script>
   <script src="/pwa-install.js"></script>
 </body>

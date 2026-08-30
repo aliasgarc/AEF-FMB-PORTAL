@@ -36,6 +36,34 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Version Badge */
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(60, 116, 65, 0.1);
+  border: 1px solid rgba(60, 116, 65, 0.2);
+  color: var(--text-lighter);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: all 0.3s ease;
+  cursor: default;
+}
+
+.version-badge:hover {
+  background: rgba(60, 116, 65, 0.15);
+  border-color: rgba(60, 116, 65, 0.3);
+  color: var(--blue);
+}
+
+.version-badge-icon {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
 body {
   margin: 0;
   font-family: 'Lato', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;

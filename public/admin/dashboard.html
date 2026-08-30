@@ -109,6 +109,12 @@
       gap: 12px;
     }
 
+    .version-badge {
+      font-size: 11px;
+      padding: 3px 10px;
+      display: none;
+    }
+
     .user-name {
       font-size: 13px;
     }
@@ -1579,6 +1585,10 @@
         </div>
       </div>
       <div class="header-right">
+        <div class="version-badge" id="versionBadge">
+          <span class="version-badge-icon">📦</span>
+          <span id="versionText">v1.2.1</span>
+        </div>
         <div class="user-info">
           <div class="avatar">👤</div>
           <div class="user-details">
@@ -1950,5 +1960,6 @@
       });
     }
   </script>
+  <script src="/version-display.js"></script>
 </body>
 </html>
