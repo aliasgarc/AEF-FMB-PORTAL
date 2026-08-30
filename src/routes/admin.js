@@ -182,7 +182,7 @@ router.get('/users', requireAdmin, async (req, res) => {
         END::numeric(5,2) AS pending_percentage
       FROM fmb_its_tbl u
       LEFT JOIN fmb_takhmeen t ON t.hof_its = u.its_id
-      LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = CAST(u.its_id AS INTEGER)
+      LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = u.its_id
       ${whereClause}
       GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt, t.previous_amount_due
       ${havingClause}
@@ -258,7 +258,7 @@ router.get('/users/export/csv', requireAdmin, async (req, res) => {
         (COALESCE(CAST(t.previous_amount_due AS NUMERIC(12,2)), 0) + COALESCE(CAST(t.takhmeen_amt AS NUMERIC(12,2)), 0) - COALESCE(SUM(pt.amt_rcv), 0))::numeric(12,2) AS outstanding
       FROM fmb_its_tbl u
       LEFT JOIN fmb_takhmeen t ON t.hof_its = u.its_id
-      LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = CAST(u.its_id AS INTEGER)
+      LEFT JOIN fmb_payment_tbl pt ON pt.hof_its = u.its_id
       ${whereClause}
       GROUP BY u.id, u.its_id, u.sabil_no, u.name, u.mobile, u.email, u.city, u.sector, t.takhmeen_amt, t.previous_amount_due
       ${havingClause}
@@ -298,7 +298,7 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
         [itsId]
       ),
       db.query(
-        'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no FROM fmb_payment_tbl WHERE hof_its = CAST($1 AS INTEGER) ORDER BY received_date DESC',
+        'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no FROM fmb_payment_tbl WHERE hof_its = $1 ORDER BY received_date DESC',
         [itsId]
       )
     ]);
@@ -393,10 +393,13 @@ router.get('/upload-status/:jobId', requireAdmin, async (req, res) => {
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
 
-    const job = await getJobStatus(parseInt(req.params.jobId, 10));
+    const jobId = parseInt(req.params.jobId, 10);
+    const job = await getJobStatus(jobId);
     if (!job) {
       return res.status(404).json({ error: 'Job not found.' });
     }
+
+    console.log(`📋 Status check for Job #${jobId}: status=${job.status}, progress=${job.progress}`);
 
     const response = {
       jobId: job.id,
@@ -467,7 +470,7 @@ router.get('/payments', requireAdmin, async (req, res) => {
         p.received_date, p.amt_pending, p.payment_refrence, p.mobile_no, p.created_at,
         u.its_id, u.sabil_no
       FROM fmb_payment_tbl p
-      LEFT JOIN fmb_its_tbl u ON p.hof_its = CAST(u.its_id AS INTEGER)
+      LEFT JOIN fmb_its_tbl u ON p.hof_its = u.its_id
       ORDER BY p.created_at DESC
       LIMIT $1
     `, [config.PAYMENTS_LIMIT]);
@@ -484,7 +487,7 @@ router.get('/payments', requireAdmin, async (req, res) => {
 router.get('/payments/:hofIts', requireAdmin, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT * FROM fmb_payment_tbl WHERE hof_its = CAST($1 AS INTEGER) ORDER BY created_at DESC`,
+      `SELECT * FROM fmb_payment_tbl WHERE hof_its = $1 ORDER BY created_at DESC`,
       [req.params.hofIts]
     );
     res.json({ payments: result.rows });

@@ -30,6 +30,7 @@ async function getJobStatus(jobId) {
 
 // Process a single job
 async function processJob(jobId) {
+  console.log(`🚀 Starting job ${jobId}...`);
   const job = await getJobStatus(jobId);
   if (!job) {
     throw new Error(`Job ${jobId} not found`);
@@ -39,11 +40,21 @@ async function processJob(jobId) {
     throw new Error(`Job ${jobId} is already ${job.status}`);
   }
 
-  // Mark as processing
-  await db.query(
-    'UPDATE upload_jobs SET status = $1, started_at = NOW() WHERE id = $2',
-    [JOB_STATUS.PROCESSING, jobId]
-  );
+  // Mark as processing with initial progress (5%)
+  console.log(`⏳ Job ${jobId}: Setting status to PROCESSING, progress 5%`);
+  console.log(`   Query: UPDATE upload_jobs SET status = $1, progress = $3 WHERE id = $2`);
+  console.log(`   Params: status='${JOB_STATUS.PROCESSING}', jobId=${jobId}, progress=5`);
+
+  try {
+    const result = await db.query(
+      'UPDATE upload_jobs SET status = $1, started_at = NOW(), progress = $2 WHERE id = $3',
+      [JOB_STATUS.PROCESSING, 5, jobId]
+    );
+    console.log(`✅ Job ${jobId}: Status updated to PROCESSING, Rows affected: ${result.rowCount}`);
+  } catch (err) {
+    console.error(`❌ Job ${jobId}: UPDATE failed - ${err.message}`);
+    throw err;
+  }
 
   try {
     const { rows, errors: parseErrors } = parseCombinedExcel(job.file_data);
@@ -51,6 +62,14 @@ async function processJob(jobId) {
     if (rows.length === 0) {
       throw new Error('No valid rows found in the sheet');
     }
+
+    // Update progress to 15% after parsing (from initial 5%)
+    console.log(`📝 Job ${jobId}: Parsed ${rows.length} rows, setting progress to 15%`);
+    const parseResult = await db.query(
+      'UPDATE upload_jobs SET progress = $1 WHERE id = $2',
+      [15, jobId]
+    );
+    console.log(`   Progress update rows: ${parseResult.rowCount}`);
 
     const client = await db.pool.connect();
     let itsUpserted = 0;
@@ -70,12 +89,20 @@ async function processJob(jobId) {
           // Create savepoint for this row
           await client.query(`SAVEPOINT ${spName}`);
 
-          // Update progress every 10 rows or at start
-          if (rowIndex % 10 === 0 || rowIndex === 0) {
-            const progress = Math.round((rowIndex / rows.length) * 100);
+          // Update progress every row (or every 5 rows for large files for performance)
+          const updateFrequency = rows.length > 1000 ? 5 : 1;
+          if (rowIndex % updateFrequency === 0) {
+            // Progress 15-85% during row processing (starts from 15% after parsing)
+            const progress = 15 + Math.round((rowIndex / rows.length) * 70);
+            const progressVal = Math.min(progress, 85);
+
+            if (rowIndex === 0 || rowIndex % 50 === 0) {
+              console.log(`   Row ${rowIndex}: Progress = ${progressVal}%`);
+            }
+
             await db.query(
               'UPDATE upload_jobs SET progress = $1 WHERE id = $2',
-              [progress, jobId]
+              [progressVal, jobId]
             );
           }
 
@@ -110,7 +137,7 @@ async function processJob(jobId) {
           // Step 2: Upsert into fmb_takhmeen
           const existingTakhmeen = await client.query(
             'SELECT id FROM fmb_takhmeen WHERE hof_its = $1',
-            [itsRecordId]
+            [row.its_id]
           );
 
           if (existingTakhmeen.rows.length > 0) {
@@ -120,13 +147,13 @@ async function processJob(jobId) {
                  takhmeen_amt = COALESCE($3::TEXT, takhmeen_amt),
                  previous_amount_due = COALESCE($4, previous_amount_due)
                WHERE hof_its = $1`,
-              [itsRecordId, row.takhmeen_year, row.takhmeen_amount, row.previous_amount]
+              [row.its_id, row.takhmeen_year, row.takhmeen_amount, row.previous_amount]
             );
           } else {
             await client.query(
               `INSERT INTO fmb_takhmeen (hof_its, takhmeen_yr, takhmeen_amt, previous_amount_due)
                VALUES ($1, $2, $3::TEXT, $4)`,
-              [itsRecordId, row.takhmeen_year, row.takhmeen_amount, row.previous_amount]
+              [row.its_id, row.takhmeen_year, row.takhmeen_amount, row.previous_amount]
             );
           }
           takhmeenUpserted++;
@@ -134,7 +161,7 @@ async function processJob(jobId) {
           // Step 3: Upsert into fmb_payment_tbl
           const existingPayment = await client.query(
             'SELECT payment_id FROM fmb_payment_tbl WHERE hof_its = $1',
-            [itsRecordId]
+            [row.its_id]
           );
 
           if (existingPayment.rows.length > 0) {
@@ -144,7 +171,7 @@ async function processJob(jobId) {
                  amt_rcv = COALESCE($3, amt_rcv),
                  amt_pending = COALESCE($4, amt_pending)
                WHERE hof_its = $1`,
-              [itsRecordId, row.full_name, row.paid, row.due]
+              [row.its_id, row.full_name, row.paid, row.due]
             );
           } else {
             // Generate shorter receipt number (max 20 chars): RCP-HASH-ID
@@ -154,7 +181,7 @@ async function processJob(jobId) {
             await client.query(
               `INSERT INTO fmb_payment_tbl (receipt_no, hof_its, hof_name, amt_rcv, payment_mode, received_date, amt_pending)
                VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-              [receiptNo, itsRecordId, row.full_name, row.paid, 'N/A', receivedDate, row.due]
+              [receiptNo, row.its_id, row.full_name, row.paid, 'N/A', receivedDate, row.due]
             );
           }
           paymentUpserted++;
@@ -169,6 +196,14 @@ async function processJob(jobId) {
       }
 
       await client.query('COMMIT');
+
+      // Update to 90% after commit (finalizing)
+      console.log(`💾 Job ${jobId}: Database commit complete, setting progress to 90%`);
+      const commitResult = await db.query(
+        'UPDATE upload_jobs SET progress = $1 WHERE id = $2',
+        [90, jobId]
+      );
+      console.log(`   Progress update rows: ${commitResult.rowCount}`);
 
       // Mark job as completed with 100% progress
       await db.query(

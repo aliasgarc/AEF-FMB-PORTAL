@@ -18,18 +18,18 @@ router.get('/:itsId', async (req, res) => {
     }
 
     const user = userResult.rows[0];
-    const userId = user.id; // Get the internal ID
+    const itsIdValue = user.its_id; // Use its_id for lookups (after migration)
 
     // Fetch Takhmeen contribution data from fmb_takhmeen table
     const takhmeeResult = await db.query(
       'SELECT id, takhmeen_yr, takhmeen_amt, comment, created_at, updated_at, COALESCE(CAST(previous_amount_due AS NUMERIC(12,2)), 0)::numeric(12,2) AS previous_amount_due FROM fmb_takhmeen WHERE hof_its = $1 ORDER BY takhmeen_yr DESC',
-      [userId]
+      [itsIdValue]
     );
 
     // Fetch payment receipts (actual payments received)
     const paymentsResult = await db.query(
       'SELECT receipt_no, amt_rcv, amt_pending, payment_mode, received_date, payment_refrence, mobile_no, created_at, updated_at FROM fmb_payment_tbl WHERE hof_its = $1 ORDER BY received_date DESC',
-      [userId]
+      [itsIdValue]
     );
 
     const takhmeen = takhmeeResult.rows;

@@ -5,7 +5,7 @@ const lookupError = document.getElementById('lookupError');
 let currentItsId = null;
 
 // App version - update when deploying new features
-const APP_VERSION = '1.2.0'; // After adding tracking + notifications
+const APP_VERSION = '1.2.1'; // Service worker offline response fix
 
 // ========== APP UPDATE CHECK ==========
 async function checkForAppUpdate(itsId) {
@@ -549,7 +549,15 @@ lookupForm.addEventListener('submit', async (e) => {
 
   try {
     const res = await fetchWithTimeout(`/api/user/${encodeURIComponent(uniqueNumber)}`);
-    const data = await res.json();
+
+    // Try to parse as JSON, but handle non-JSON responses
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      // If response is not JSON, create an error object
+      data = { error: 'Invalid response from server. Please try again.' };
+    }
 
     if (!res.ok) {
       showError('❌ ' + (data.error || 'Account not found. Please verify your ITS ID and try again.'));

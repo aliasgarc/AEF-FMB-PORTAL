@@ -416,7 +416,12 @@ async function checkJobStatus(jobId, isAutoCheck = false) {
     // Show progress bar while processing
     if (data.status === 'processing' || data.status === 'pending') {
       try {
+        console.log(`\n📊 Status Check #${isAutoCheck ? 'auto' : 'initial'}:`);
+        console.log(`   Raw progress: ${data.progress} (type: ${typeof data.progress})`);
+        console.log(`   Status: ${data.status}`);
+
         const progress = Math.min(Math.max(parseInt(data.progress) || 0, 0), 100);
+        console.log(`   Parsed progress: ${progress}%`);
 
         // Determine stage based on progress
         let stage = 'Initializing';
@@ -447,18 +452,24 @@ async function checkJobStatus(jobId, isAutoCheck = false) {
 
         // Create or update modal
         let modal = document.getElementById('upload-progress-modal');
-        if (!modal) {
+        const isNewModal = !modal;
+
+        if (isNewModal) {
           modal = document.createElement('div');
           modal.id = 'upload-progress-modal';
           document.body.appendChild(modal);
         }
 
+        const circumference = 2 * Math.PI * 45;
+        const offset = circumference - (progress / 100) * circumference;
+
         const progressHtml = `
           <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);">
             <div style="text-align: center; padding: 32px; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); max-width: 420px; width: 90%; animation: slideUp 0.4s ease-out;">
+
             <!-- Animated Header -->
-            <div style="margin-bottom: 18px;">
-              <div style="font-size: 40px; margin-bottom: 8px; display: inline-block;">
+            <div style="margin-bottom: 20px;">
+              <div style="font-size: 36px; margin-bottom: 8px; display: inline-block;">
                 <span style="animation: bounce 0.6s ease-in-out infinite, spin 2s linear infinite;">${stageIcon}</span>
               </div>
               <div style="margin-top: 6px;">
@@ -467,19 +478,33 @@ async function checkJobStatus(jobId, isAutoCheck = false) {
               </div>
             </div>
 
-            <!-- Animated Progress Bar with Wave Effect -->
-            <div style="margin: 18px 0;">
-              <div style="width: 100%; background-color: #e8e8e8; border-radius: 8px; overflow: hidden; height: 12px; margin-bottom: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
-                <div style="width: ${progress}%; height: 100%; background: linear-gradient(90deg, #4CAF50, #45a049, #3d8b40); transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); position: relative; overflow: hidden;">
-                  <div style="position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: slide 1.5s infinite;"></div>
-                </div>
+            <!-- Circular Progress Indicator -->
+            <div style="margin: 20px 0; position: relative; width: 140px; height: 140px; margin-left: auto; margin-right: auto;">
+              <svg width="140" height="140" style="transform: rotate(-90deg);">
+                <!-- Background circle -->
+                <circle cx="70" cy="70" r="45" fill="none" stroke="#e8e8e8" stroke-width="8" />
+                <!-- Progress circle -->
+                <circle cx="70" cy="70" r="45" fill="none" stroke="url(#progressGradient)" stroke-width="8"
+                  stroke-dasharray="${circumference}"
+                  stroke-dashoffset="${offset}"
+                  stroke-linecap="round"
+                  style="transition: stroke-dashoffset 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);" />
+                <defs>
+                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#45a049;stop-opacity:1" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <!-- Center percentage text -->
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                <div style="font-size: 42px; font-weight: bold; color: #4CAF50; line-height: 1;">${progress}<span style="font-size: 24px;">%</span></div>
               </div>
-              <strong style="font-size: 28px; color: #4CAF50; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${progress}%</strong>
             </div>
 
             <!-- Dynamic Description -->
             <div style="margin: 12px 0; min-height: 30px;">
-              <small style="color: #666; display: block; font-size: 12px; font-weight: 500; animation: fadeInOut 2s infinite;">
+              <small style="color: #666; display: block; font-size: 12px; font-weight: 500; line-height: 1.5;">
                 ${stageDesc}
               </small>
             </div>
@@ -571,18 +596,33 @@ async function checkJobStatus(jobId, isAutoCheck = false) {
 
             @keyframes fadeInOut {
               0%, 100% { opacity: 1; }
-              50% { opacity: 0.6; }
+              50% { opacity: 0.7; }
             }
 
             @keyframes blink {
               0%, 100% { opacity: 1; }
               50% { opacity: 0.5; }
             }
+
+            @keyframes scaleIn {
+              from {
+                transform: scale(0.95);
+                opacity: 0;
+              }
+              to {
+                transform: scale(1);
+                opacity: 1;
+              }
+            }
           </style>
             </div>
           </div>
         `;
-        modal.innerHTML = progressHtml;
+
+        // Only update innerHTML if modal is new or content changed
+        if (isNewModal || modal.innerHTML !== progressHtml) {
+          modal.innerHTML = progressHtml;
+        }
         modal.style.display = 'block';
       } catch (err) {
         console.error('Progress display error:', err);
@@ -731,11 +771,38 @@ async function handleCombinedUpload(e) {
 
     console.log('\n📤 Sending fetch request to /api/admin/upload-combined...');
 
-    const response = await fetch('/api/admin/upload-combined', {
-      method: 'POST',
-      body: formData,
-      credentials: 'include'  // IMPORTANT: Include cookies
-    });
+    // Detect if on mobile for longer timeout
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const timeoutMs = isMobile ? 300000 : 120000; // 5 minutes for mobile, 2 minutes for desktop
+    console.log(`   Timeout: ${timeoutMs}ms (${isMobile ? 'Mobile' : 'Desktop'})`);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    let response;
+    try {
+      response = await fetch('/api/admin/upload-combined', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',  // IMPORTANT: Include cookies
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === 'AbortError') {
+        console.error('\n❌ TIMEOUT ERROR: Upload took longer than ' + timeoutMs + 'ms');
+        resultEl.innerHTML = `❌ Upload timed out. Network may be slow or file too large. Please try again.`;
+        resultEl.className = 'upload-result error';
+        submitBtn.disabled = false;
+        return;
+      }
+      console.error('\n❌ NETWORK ERROR:', fetchErr.message);
+      resultEl.innerHTML = `❌ Network error: ${fetchErr.message || 'Could not connect to server'}`;
+      resultEl.className = 'upload-result error';
+      submitBtn.disabled = false;
+      return;
+    }
 
     console.log('\n📨 Response received');
     console.log('   Status:', response.status, response.statusText);

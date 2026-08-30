@@ -62,45 +62,78 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
+  // Allow all POST/PUT/DELETE requests to bypass service worker (let browser handle them directly)
+  // This prevents caching and timeout issues for file uploads and mutations
   if (request.method !== 'GET') {
     return;
   }
 
-  // API requests - Network first with timeout
+  // API requests - Network first with timeout (but skip upload endpoints)
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      Promise.race([
-        fetch(request),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout')), 5000)
-        )
-      ]).then((response) => {
-        // Cache successful responses for offline fallback
-        if (response && response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-        }
-        return response;
-      }).catch(() => {
-        // Return cached response or offline message
-        return caches.match(request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
+    // Don't apply timeout to upload endpoints
+    const isUploadEndpoint = url.pathname.includes('/upload');
+
+    const fetchPromise = fetch(request);
+
+    if (isUploadEndpoint) {
+      // For uploads, use no timeout - let it complete naturally
+      event.respondWith(
+        fetchPromise.then((response) => {
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
           }
-          // Return offline page for navigation requests
-          if (request.mode === 'navigate') {
-            return caches.match(OFFLINE_PAGE);
-          }
-          return new Response('Offline - No cached data available', {
-            status: 503,
-            statusText: 'Service Unavailable'
+          return response;
+        }).catch(() => {
+          return caches.match(request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            return new Response('Network error - No cached data available', {
+              status: 503,
+              statusText: 'Service Unavailable'
+            });
           });
-        });
-      })
-    );
+        })
+      );
+    } else {
+      // For other API requests, apply 5-second timeout
+      event.respondWith(
+        Promise.race([
+          fetchPromise,
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 5000)
+          )
+        ]).then((response) => {
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return response;
+        }).catch(() => {
+          return caches.match(request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            if (request.mode === 'navigate') {
+              return caches.match(OFFLINE_PAGE);
+            }
+            // Return JSON error for API requests
+            return new Response(JSON.stringify({
+              error: 'Network offline - No cached data available. Please check your internet connection.'
+            }), {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'application/json' }
+            });
+          });
+        })
+      );
+    }
     return;
   }
 
