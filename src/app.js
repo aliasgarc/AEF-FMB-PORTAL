@@ -7,6 +7,7 @@ const userRoutes = require('./routes/user');
 const notificationRoutes = require('./routes/notifications');
 const appUpdatesRoutes = require('./routes/app-updates');
 const appAnalyticsRoutes = require('./routes/app-analytics');
+const pushNotificationsRoutes = require('./routes/push-notifications');
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use('/user', express.static(path.join(__dirname, '..', 'public', 'user')));
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/push', pushNotificationsRoutes);
 app.use('/api/app', appUpdatesRoutes);
 app.use('/api/app-analytics', appAnalyticsRoutes);
 
