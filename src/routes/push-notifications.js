@@ -189,8 +189,17 @@ router.post('/send', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Error sending push notification:', err);
-    res.status(500).json({ error: 'Failed to send push notification' });
+    console.error('❌ Error sending push notification:', {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      stack: err.stack.split('\n').slice(0, 3).join('\n')
+    });
+    res.status(500).json({
+      error: 'Failed to send push notification',
+      detail: err.message,
+      hint: 'Check server logs for details'
+    });
   }
 });
 
