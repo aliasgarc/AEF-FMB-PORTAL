@@ -1343,5 +1343,194 @@ window.addEventListener('load', () => {
       window.location.href = `/api/admin/users/export/csv${params.toString() ? '?' + params.toString() : ''}`;
     });
   }
+
+  // Push Notifications Functionality
+  setupPushNotifications();
 });
+
+function setupPushNotifications() {
+  const form = document.getElementById('pushNotificationForm');
+  const recipientTypeRadios = document.querySelectorAll('input[name="recipientType"]');
+  const messageTypeRadios = document.querySelectorAll('input[name="messageType"]');
+  const specificUsersDiv = document.getElementById('specificUsersDiv');
+  const customMessageDiv = document.getElementById('customMessageDiv');
+  const autoMessagePreview = document.getElementById('autoMessagePreview');
+  const previewText = document.getElementById('previewText');
+  const resultDiv = document.getElementById('pushResult');
+  const loadHistoryBtn = document.getElementById('loadPushHistory');
+
+  // Toggle specific users input
+  recipientTypeRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      specificUsersDiv.style.display = e.target.value === 'specific' ? 'block' : 'none';
+    });
+  });
+
+  // Toggle message type UI
+  messageTypeRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const isCustom = e.target.value === 'custom';
+      customMessageDiv.style.display = isCustom ? 'block' : 'none';
+      autoMessagePreview.style.display = isCustom ? 'none' : 'block';
+
+      if (!isCustom) {
+        updateMessagePreview(e.target.value);
+      }
+    });
+  });
+
+  // Update preview for auto message types
+  function updateMessagePreview(type) {
+    const previewMessages = {
+      'auto_takhmeen': '₹126,792.00',
+      'auto_pending': '₹0.00'
+    };
+
+    const label = type === 'auto_takhmeen' ? 'Your Takhmeen: ' : 'Pending Payment: ';
+    previewText.textContent = label + previewMessages[type];
+  }
+
+  // Handle form submission
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      resultDiv.style.display = 'none';
+
+      const recipientType = document.querySelector('input[name="recipientType"]:checked').value;
+      const messageType = document.querySelector('input[name="messageType"]:checked').value;
+      const title = document.getElementById('pushTitle').value;
+      const customMessage = document.getElementById('pushMessage').value;
+
+      // Validation
+      if (!title.trim()) {
+        showResult('❌ Please enter a notification title', 'error');
+        return;
+      }
+
+      if (messageType === 'custom' && !customMessage.trim()) {
+        showResult('❌ Please enter a message for custom type', 'error');
+        return;
+      }
+
+      if (recipientType === 'specific') {
+        const itsIds = document.getElementById('pushUserIds').value
+          .split('\n')
+          .map(id => id.trim())
+          .filter(id => id);
+
+        if (itsIds.length === 0) {
+          showResult('❌ Please enter at least one user ITS ID', 'error');
+          return;
+        }
+      }
+
+      try {
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Sending...';
+
+        const payload = {
+          recipient_type: recipientType,
+          message_type: messageType,
+          title: title,
+          admin_id: document.getElementById('whoami')?.textContent || 'admin'
+        };
+
+        if (messageType === 'custom') {
+          payload.custom_message = customMessage;
+        }
+
+        if (recipientType === 'specific') {
+          payload.its_ids = document.getElementById('pushUserIds').value
+            .split('\n')
+            .map(id => id.trim())
+            .filter(id => id);
+        }
+
+        const response = await fetch('/api/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          showResult(`✅ Push notification sent to ${data.details.recipient_count} users!`, 'success');
+          form.reset();
+          specificUsersDiv.style.display = 'none';
+          customMessageDiv.style.display = 'block';
+          autoMessagePreview.style.display = 'none';
+
+          // Reload history if it's shown
+          const historyDiv = document.getElementById('pushHistory');
+          if (historyDiv.style.display !== 'none') {
+            loadPushHistoryData();
+          }
+        } else {
+          showResult(`❌ ${data.error || 'Failed to send notification'}`, 'error');
+        }
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      } catch (err) {
+        showResult(`❌ Error: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Load history
+  if (loadHistoryBtn) {
+    loadHistoryBtn.addEventListener('click', loadPushHistoryData);
+  }
+
+  function showResult(message, type) {
+    resultDiv.textContent = message;
+    resultDiv.style.display = 'block';
+    resultDiv.style.background = type === 'success' ? '#e8f5e9' : '#ffebee';
+    resultDiv.style.color = type === 'success' ? '#2e7d32' : '#c62828';
+    resultDiv.style.border = `1px solid ${type === 'success' ? '#81c784' : '#e57373'}`;
+  }
+}
+
+async function loadPushHistoryData() {
+  try {
+    const response = await fetch('/api/push/history');
+    const data = await response.json();
+
+    if (data.notifications && data.notifications.length > 0) {
+      const historyDiv = document.getElementById('pushHistory');
+      const historyBody = document.getElementById('pushHistoryBody');
+
+      historyBody.innerHTML = data.notifications.map(notif => `
+        <tr style="border-bottom: 1px solid var(--border); hover: background: #f8fafc;">
+          <td style="padding: 12px;">${notif.title}</td>
+          <td style="padding: 12px;">
+            ${notif.message_type === 'custom' ? '✍️ Custom' : notif.message_type === 'auto_takhmeen' ? '💰 Takhmeen' : '⚠️ Pending'}
+          </td>
+          <td style="padding: 12px; text-align: center;">${notif.recipient_count}</td>
+          <td style="padding: 12px; text-align: center;">${notif.delivered_count || 0}</td>
+          <td style="padding: 12px;">${notif.created_by}</td>
+          <td style="padding: 12px;">${new Date(notif.created_at).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+
+      historyDiv.style.display = 'block';
+      document.getElementById('pushResult').style.display = 'none';
+    } else {
+      document.getElementById('pushResult').style.display = 'block';
+      document.getElementById('pushResult').textContent = '📭 No push notifications sent yet';
+      document.getElementById('pushResult').style.background = '#e3f2fd';
+      document.getElementById('pushResult').style.color = '#1565c0';
+    }
+  } catch (err) {
+    console.error('Error loading history:', err);
+    document.getElementById('pushResult').style.display = 'block';
+    document.getElementById('pushResult').textContent = '❌ Failed to load history';
+    document.getElementById('pushResult').style.background = '#ffebee';
+    document.getElementById('pushResult').style.color = '#c62828';
+  }
+}
 

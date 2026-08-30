@@ -1615,6 +1615,7 @@
       <button class="tab active" data-tab="users">👥 Users & Accounts</button>
       <button class="tab" data-tab="upload">📤 Data Upload</button>
       <button class="tab" data-tab="notifications">🔔 Send Notifications</button>
+      <button class="tab" data-tab="push">📲 Push Notifications</button>
       <button class="tab" data-tab="analytics">📊 PWA Analytics</button>
     </div>
 
@@ -1858,6 +1859,121 @@
             </thead>
             <tbody id="detailBody"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Push Notifications Section -->
+    <div id="push" class="section">
+      <div class="card">
+        <h3 class="card-title">📲 <span>Send Push Notifications</span></h3>
+        <p class="card-subtitle">Send targeted push notifications to installed app users (instant OS notifications)</p>
+
+        <form id="pushNotificationForm" style="margin-bottom: 24px;">
+          <!-- Recipient Type Selection -->
+          <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+            <label style="font-weight: 600; margin-bottom: 12px; display: block;">👥 Send To:</label>
+            <div style="display: flex; gap: 16px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="recipientType" value="all" checked>
+                <span>All Users</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="recipientType" value="specific">
+                <span>Specific Users</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Specific Users Selection (hidden by default) -->
+          <div id="specificUsersDiv" style="margin-bottom: 20px; display: none;">
+            <label for="pushUserIds">🔍 Select Users (ITS IDs)</label>
+            <textarea
+              id="pushUserIds"
+              placeholder="Enter ITS IDs, one per line (e.g., 50450029, 50450030, ...)"
+              style="width: 100%; min-height: 100px; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-family: monospace; font-size: 13px;"
+            ></textarea>
+            <p style="font-size: 12px; color: var(--text-lighter); margin: 8px 0 0 0;">Tip: Enter one ITS ID per line</p>
+          </div>
+
+          <!-- Message Type Selection -->
+          <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 8px;">
+            <label style="font-weight: 600; margin-bottom: 12px; display: block;">💬 Message Type:</label>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="messageType" value="custom" checked>
+                <span>Custom Message</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="messageType" value="auto_takhmeen">
+                <span>Auto: Takhmeen</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="messageType" value="auto_pending">
+                <span>Auto: Pending</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Title Input -->
+          <div style="margin-bottom: 16px;">
+            <label for="pushTitle">📋 Notification Title</label>
+            <input
+              type="text"
+              id="pushTitle"
+              placeholder="e.g., Payment Reminder, Takhmeen Update"
+              maxlength="255"
+              style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px;"
+            />
+          </div>
+
+          <!-- Custom Message Input (shown only for custom message type) -->
+          <div id="customMessageDiv" style="margin-bottom: 16px;">
+            <label for="pushMessage">✍️ Message</label>
+            <textarea
+              id="pushMessage"
+              placeholder="Enter your notification message..."
+              style="width: 100%; min-height: 80px; padding: 12px; border: 1px solid var(--border); border-radius: 6px;"
+            ></textarea>
+          </div>
+
+          <!-- Auto Message Preview (shown only for auto message types) -->
+          <div id="autoMessagePreview" style="margin-bottom: 16px; padding: 12px; background: #e8f3eb; border-left: 3px solid #3c7441; border-radius: 6px; display: none;">
+            <p style="margin: 0; font-size: 12px; color: #3c7441;">
+              📝 <strong>Preview:</strong> <span id="previewText"></span>
+            </p>
+          </div>
+
+          <!-- Send Button -->
+          <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #3c7441 0%, #5a9b62 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+            🚀 Send Push Notification
+          </button>
+        </form>
+
+        <!-- Result Message -->
+        <div id="pushResult" style="display: none; padding: 16px; border-radius: 8px; margin-top: 20px;"></div>
+
+        <!-- History Section -->
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
+          <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600;">📊 Notification History</h4>
+          <div id="pushHistory" style="display: none;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <thead>
+                <tr style="background: #f8fafc; border-bottom: 1px solid var(--border);">
+                  <th style="padding: 12px; text-align: left;">Title</th>
+                  <th style="padding: 12px; text-align: left;">Type</th>
+                  <th style="padding: 12px; text-align: center;">Recipients</th>
+                  <th style="padding: 12px; text-align: center;">Delivered</th>
+                  <th style="padding: 12px; text-align: left;">Sent By</th>
+                  <th style="padding: 12px; text-align: left;">Date</th>
+                </tr>
+              </thead>
+              <tbody id="pushHistoryBody"></tbody>
+            </table>
+          </div>
+          <button type="button" id="loadPushHistory" style="padding: 10px 16px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">
+            📋 Load History
+          </button>
         </div>
       </div>
     </div>
