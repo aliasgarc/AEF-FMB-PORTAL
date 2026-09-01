@@ -43,6 +43,41 @@ async function initializeTables() {
 // Initialize tables on router load
 initializeTables();
 
+// GET /api/push/init - Initialize database tables (for manual trigger on Vercel)
+router.get('/init', async (req, res) => {
+  try {
+    console.log('🔨 Manually initializing push notification tables...');
+    await initializeTables();
+
+    // Verify tables exist
+    const result = await db.query(`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = 'public'
+      AND tablename IN ('push_notifications', 'push_notification_recipients')
+    `);
+
+    if (result.rows.length === 2) {
+      res.json({
+        success: true,
+        message: 'Push notification tables initialized successfully',
+        tables: result.rows.map(r => r.tablename)
+      });
+    } else {
+      res.status(500).json({
+        error: 'Tables not found after initialization',
+        found: result.rows.length,
+        expected: 2
+      });
+    }
+  } catch (err) {
+    console.error('Error initializing tables:', err);
+    res.status(500).json({
+      error: 'Failed to initialize tables',
+      detail: err.message
+    });
+  }
+});
+
 // POST /api/push/send - Send push notification to specific or all users
 router.post('/send', async (req, res) => {
   try {
