@@ -119,8 +119,8 @@ router.post('/send', async (req, res) => {
       return res.status(400).json({ error: 'title and message_type are required' });
     }
 
-    if (recipient_type !== 'all' && recipient_type !== 'specific') {
-      return res.status(400).json({ error: 'recipient_type must be "all" or "specific"' });
+    if (recipient_type !== 'all' && recipient_type !== 'specific' && recipient_type !== 'bulk_pending') {
+      return res.status(400).json({ error: 'recipient_type must be "all", "specific", or "bulk_pending"' });
     }
 
     if (recipient_type === 'specific' && (!its_ids || !Array.isArray(its_ids) || its_ids.length === 0)) {
@@ -147,6 +147,16 @@ router.post('/send', async (req, res) => {
     if (recipient_type === 'all') {
       const result = await db.query('SELECT its_id FROM fmb_its_tbl WHERE its_id IS NOT NULL');
       recipients = result.rows.map(row => row.its_id);
+    } else if (recipient_type === 'bulk_pending') {
+      // Get all users with pending amounts
+      const result = await db.query(`
+        SELECT DISTINCT pt.hof_its as its_id
+        FROM fmb_payment_tbl pt
+        WHERE pt.amt_pending > 0
+      `);
+      recipients = result.rows.map(row => row.its_id);
+      // Override recipient_type for logging
+      console.log(`Found ${recipients.length} users with pending amounts`);
     } else {
       recipients = recipientIds;
     }
@@ -181,7 +191,7 @@ router.post('/send', async (req, res) => {
         its_id,
         message: `Your Takhmeen: ₹${(takhmeenMap[its_id] || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
       }));
-    } else if (message_type === 'auto_pending') {
+    } else if (message_type === 'auto_pending' || message_type === 'bulk_pending') {
       const placeholders = recipients.map((_, i) => `$${i + 1}`).join(',');
       const result = await db.query(
         `SELECT pt.hof_its as its_id, COALESCE(SUM(pt.amt_pending), 0) as pending_amount
@@ -197,10 +207,17 @@ router.post('/send', async (req, res) => {
         pendingMap[row.its_id] = row.pending_amount;
       });
 
-      messages = recipients.map(its_id => ({
-        its_id,
-        message: `Pending Payment: ₹${(pendingMap[its_id] || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-      }));
+      messages = recipients.map(its_id => {
+        const amount = pendingMap[its_id] || 0;
+        // For bulk_pending, only include users with actual pending amounts
+        if (message_type === 'bulk_pending' && amount === 0) {
+          return null;
+        }
+        return {
+          its_id,
+          message: `Pending Payment: ₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+        };
+      }).filter(msg => msg !== null); // Remove null entries
     }
 
     // Create push notification record

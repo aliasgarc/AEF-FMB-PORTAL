@@ -1359,10 +1359,21 @@ function setupPushNotifications() {
   const resultDiv = document.getElementById('pushResult');
   const loadHistoryBtn = document.getElementById('loadPushHistory');
 
-  // Toggle specific users input
+  // Toggle specific users input and handle bulk_pending
   recipientTypeRadios.forEach(radio => {
     radio.addEventListener('change', (e) => {
-      specificUsersDiv.style.display = e.target.value === 'specific' ? 'block' : 'none';
+      const value = e.target.value;
+      specificUsersDiv.style.display = value === 'specific' ? 'block' : 'none';
+
+      // For bulk_pending, auto-select auto_pending message type
+      if (value === 'bulk_pending') {
+        document.querySelector('input[name="messageType"][value="auto_pending"]').checked = true;
+        // Update preview
+        updateMessagePreview('auto_pending');
+        // Show custom message only if different type is selected later
+        customMessageDiv.style.display = 'none';
+        autoMessagePreview.style.display = 'block';
+      }
     });
   });
 
@@ -1383,10 +1394,18 @@ function setupPushNotifications() {
   function updateMessagePreview(type) {
     const previewMessages = {
       'auto_takhmeen': '₹126,792.00',
-      'auto_pending': '₹0.00'
+      'auto_pending': '₹0.00',
+      'bulk_pending': '₹0.00 (per user)'
     };
 
-    const label = type === 'auto_takhmeen' ? 'Your Takhmeen: ' : 'Pending Payment: ';
+    let label;
+    if (type === 'auto_takhmeen') {
+      label = 'Your Takhmeen: ';
+    } else if (type === 'bulk_pending') {
+      label = 'Pending Payment: ';
+    } else {
+      label = 'Pending Payment: ';
+    }
     previewText.textContent = label + previewMessages[type];
   }
 
