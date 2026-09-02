@@ -1,11 +1,33 @@
 const express = require('express');
 const db = require('../db');
+const webpush = require('web-push');
 
 const router = express.Router();
+
+// Set VAPID details (generate with: npx web-push generate-vapid-keys)
+const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'BN0Vu3lUoTZFGCJGH2TkLz7lUd7H9mK5pJ8sQ2rV3W9D4xN6oL8sX5tY7zW9qZ0aB1cD2eF3gH4iJ5kL6mN7oP8qR9';
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'your-private-key-here';
+
+// Set VAPID subject (must be a mailto or https URL)
+const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:example@example.com';
+
+// Set webpush with VAPID keys
+webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 
 // Initialize database tables if they don't exist
 async function initializeTables() {
   try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        its_id VARCHAR(50) NOT NULL,
+        subscription_endpoint VARCHAR(500) NOT NULL UNIQUE,
+        auth_key VARCHAR(255),
+        p256dh_key VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     await db.query(`
       CREATE TABLE IF NOT EXISTS push_notifications (
         id SERIAL PRIMARY KEY,
@@ -30,6 +52,7 @@ async function initializeTables() {
       )
     `);
 
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_its_id ON push_subscriptions(its_id)`);
     await db.query(`CREATE INDEX IF NOT EXISTS idx_push_notifications_created_by ON push_notifications(created_by)`);
     await db.query(`CREATE INDEX IF NOT EXISTS idx_push_notifications_created_at ON push_notifications(created_at)`);
     await db.query(`CREATE INDEX IF NOT EXISTS idx_push_notification_recipients_push_id ON push_notification_recipients(push_notification_id)`);
@@ -43,42 +66,43 @@ async function initializeTables() {
 // Initialize tables on router load
 initializeTables();
 
-// GET /api/push/init - Initialize database tables (for manual trigger on Vercel)
-router.get('/init', async (req, res) => {
+// GET /api/push/vapid-public-key - Get public key for client subscription
+router.get('/vapid-public-key', (req, res) => {
+  res.json({ publicKey: vapidPublicKey });
+});
+
+// POST /api/push/subscribe - Save push subscription for user
+router.post('/subscribe', async (req, res) => {
   try {
-    console.log('🔨 Manually initializing push notification tables...');
-    await initializeTables();
+    const { subscription, its_id } = req.body;
 
-    // Verify tables exist
-    const result = await db.query(`
-      SELECT tablename FROM pg_tables
-      WHERE schemaname = 'public'
-      AND tablename IN ('push_notifications', 'push_notification_recipients')
-    `);
-
-    if (result.rows.length === 2) {
-      res.json({
-        success: true,
-        message: 'Push notification tables initialized successfully',
-        tables: result.rows.map(r => r.tablename)
-      });
-    } else {
-      res.status(500).json({
-        error: 'Tables not found after initialization',
-        found: result.rows.length,
-        expected: 2
-      });
+    if (!subscription || !its_id) {
+      return res.status(400).json({ error: 'subscription and its_id required' });
     }
+
+    // Store subscription in database
+    await db.query(
+      `INSERT INTO push_subscriptions (its_id, subscription_endpoint, auth_key, p256dh_key)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (subscription_endpoint) DO UPDATE
+       SET its_id = $1, auth_key = $3, p256dh_key = $4`,
+      [
+        its_id,
+        subscription.endpoint,
+        subscription.keys?.auth,
+        subscription.keys?.p256dh
+      ]
+    );
+
+    console.log(`✅ Push subscription saved for user ${its_id}`);
+    res.json({ success: true, message: 'Subscription saved' });
   } catch (err) {
-    console.error('Error initializing tables:', err);
-    res.status(500).json({
-      error: 'Failed to initialize tables',
-      detail: err.message
-    });
+    console.error('Error saving subscription:', err);
+    res.status(500).json({ error: 'Failed to save subscription' });
   }
 });
 
-// POST /api/push/send - Send push notification to specific or all users
+// POST /api/push/send - Send push notification
 router.post('/send', async (req, res) => {
   try {
     const {
@@ -103,7 +127,7 @@ router.post('/send', async (req, res) => {
       return res.status(400).json({ error: 'its_ids array required for specific recipients' });
     }
 
-    // Convert ITS IDs to strings to ensure consistency with database
+    // Convert ITS IDs to strings
     let recipientIds = its_ids;
     if (recipient_type === 'specific') {
       recipientIds = its_ids.map(id => String(id).trim());
@@ -113,7 +137,7 @@ router.post('/send', async (req, res) => {
       return res.status(400).json({ error: 'custom_message required for custom message type' });
     }
 
-    // Verify admin authorization (basic check)
+    // Verify admin authorization
     if (!admin_id) {
       return res.status(401).json({ error: 'Admin authorization required' });
     }
@@ -139,7 +163,6 @@ router.post('/send', async (req, res) => {
         message: custom_message
       }));
     } else if (message_type === 'auto_takhmeen') {
-      // Fetch takhmeen for each user
       const placeholders = recipients.map((_, i) => `$${i + 1}`).join(',');
       const result = await db.query(
         `SELECT its_id, COALESCE(SUM(amount), 0) as takhmeen_amount
@@ -159,7 +182,6 @@ router.post('/send', async (req, res) => {
         message: `Your Takhmeen: ₹${(takhmeenMap[its_id] || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
       }));
     } else if (message_type === 'auto_pending') {
-      // Fetch pending amount for each user
       const placeholders = recipients.map((_, i) => `$${i + 1}`).join(',');
       const result = await db.query(
         `SELECT pt.hof_its as its_id, COALESCE(SUM(pt.amt_pending), 0) as pending_amount
@@ -204,59 +226,136 @@ router.post('/send', async (req, res) => {
       recipientParams
     );
 
+    // SEND ACTUAL PUSH NOTIFICATIONS
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (const msg of messages) {
+      try {
+        // Get subscriptions for this user
+        const subResult = await db.query(
+          'SELECT subscription_endpoint, auth_key, p256dh_key FROM push_subscriptions WHERE its_id = $1',
+          [msg.its_id]
+        );
+
+        if (subResult.rows.length === 0) {
+          console.warn(`⚠️  No push subscription found for user ${msg.its_id}`);
+          failedCount++;
+          continue;
+        }
+
+        // Send to each subscription
+        for (const sub of subResult.rows) {
+          const payload = JSON.stringify({
+            title: title,
+            message: msg.message,
+            push_notification_id: push_notification_id,
+            its_id: msg.its_id,
+            message_type: message_type
+          });
+
+          const subscription = {
+            endpoint: sub.subscription_endpoint,
+            keys: {
+              auth: sub.auth_key,
+              p256dh: sub.p256dh_key
+            }
+          };
+
+          try {
+            await webpush.sendNotification(subscription, payload);
+            sentCount++;
+          } catch (err) {
+            console.error(`Failed to send to ${msg.its_id}:`, err.message);
+            failedCount++;
+          }
+        }
+      } catch (err) {
+        console.error(`Error processing notifications for ${msg.its_id}:`, err);
+        failedCount++;
+      }
+    }
+
     console.log(`
 ╔════════════════════════════════════════════════════════════╗
-║         PUSH NOTIFICATION - SENT SUCCESSFULLY              ║
+║         PUSH NOTIFICATION - SENT                           ║
 ╠════════════════════════════════════════════════════════════╣
 ║ Title:        ${title}
 ║ Type:         ${message_type}
 ║ Recipients:   ${recipients.length} users
+║ Sent:         ${sentCount} notifications
+║ Failed:       ${failedCount} notifications
 ║ Recipient Type: ${recipient_type}
 ║ Created By:   ${admin_id}
-║ Status:       ✅ Queued for delivery
 ╚════════════════════════════════════════════════════════════╝
     `);
 
     res.json({
       success: true,
       push_notification_id,
-      message: `Push notification queued for ${recipients.length} users`,
+      message: `Push notification sent to ${sentCount} users`,
       details: {
         title,
         message_type,
         recipient_count: recipients.length,
-        recipient_type,
-        messages_sample: messages.slice(0, 3)
+        sent_count: sentCount,
+        failed_count: failedCount,
+        recipient_type
       }
     });
   } catch (err) {
-    console.error('❌ Error sending push notification:', {
-      message: err.message,
-      code: err.code,
-      detail: err.detail,
-      stack: err.stack.split('\n').slice(0, 3).join('\n')
-    });
+    console.error('❌ Error sending push notification:', err);
 
-    // Provide helpful error messages for common issues
     let errorMsg = err.message;
     if (err.code === '42P01') {
       errorMsg = 'Database tables not found. Please call /api/push/init first.';
     } else if (err.message.includes('duplicate key')) {
       errorMsg = 'This notification may have already been sent.';
-    } else if (err.message.includes('violates')) {
-      errorMsg = `Database constraint error: ${err.detail || err.message}`;
     }
 
     res.status(500).json({
       error: 'Failed to send push notification',
       detail: errorMsg,
-      code: err.code,
       hint: 'Check server logs for full error details'
     });
   }
 });
 
-// GET /api/push/history - Get push notification history (admin)
+// GET /api/push/init - Initialize database tables
+router.get('/init', async (req, res) => {
+  try {
+    console.log('🔨 Manually initializing push notification tables...');
+    await initializeTables();
+
+    const result = await db.query(`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = 'public'
+      AND tablename IN ('push_notifications', 'push_notification_recipients', 'push_subscriptions')
+    `);
+
+    if (result.rows.length === 3) {
+      res.json({
+        success: true,
+        message: 'Push notification tables initialized successfully',
+        tables: result.rows.map(r => r.tablename)
+      });
+    } else {
+      res.status(500).json({
+        error: 'Not all tables were created',
+        found: result.rows.length,
+        expected: 3
+      });
+    }
+  } catch (err) {
+    console.error('Error initializing tables:', err);
+    res.status(500).json({
+      error: 'Failed to initialize tables',
+      detail: err.message
+    });
+  }
+});
+
+// GET /api/push/history - Get push notification history
 router.get('/history', async (req, res) => {
   try {
     const { limit = 20, offset = 0 } = req.query;
@@ -284,37 +383,7 @@ router.get('/history', async (req, res) => {
   }
 });
 
-// GET /api/push/recipients/:notificationId - Get recipients of a specific notification
-router.get('/recipients/:notificationId', async (req, res) => {
-  try {
-    const { notificationId } = req.params;
-    const { status } = req.query; // optional filter by status
-
-    let query = `SELECT its_id, status, delivered_at, read_at, created_at
-                 FROM push_notification_recipients
-                 WHERE push_notification_id = $1`;
-    const params = [notificationId];
-
-    if (status) {
-      query += ` AND status = $2`;
-      params.push(status);
-    }
-
-    query += ` ORDER BY created_at DESC`;
-
-    const result = await db.query(query, params);
-
-    res.json({
-      recipients: result.rows,
-      total: result.rows.length
-    });
-  } catch (err) {
-    console.error('Error fetching notification recipients:', err);
-    res.status(500).json({ error: 'Failed to fetch recipients' });
-  }
-});
-
-// POST /api/push/mark-delivered - Mark notification as delivered (from service worker)
+// POST /api/push/mark-delivered - Mark notification as delivered
 router.post('/mark-delivered', async (req, res) => {
   try {
     const { push_notification_id, its_id } = req.body;
@@ -337,7 +406,7 @@ router.post('/mark-delivered', async (req, res) => {
   }
 });
 
-// POST /api/push/mark-read - Mark notification as read (from user portal)
+// POST /api/push/mark-read - Mark notification as read
 router.post('/mark-read', async (req, res) => {
   try {
     const { push_notification_id, its_id } = req.body;

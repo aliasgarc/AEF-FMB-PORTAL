@@ -327,6 +327,7 @@ async function requestNotificationPermission() {
 
 async function registerForPushNotifications(itsId) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.warn('[Push] Service Worker or PushManager not available');
     return false;
   }
 
@@ -336,28 +337,56 @@ async function registerForPushNotifications(itsId) {
       scope: '/'
     });
 
+    console.log('[Push] Service worker registered');
+
+    // Get VAPID public key from server
+    const vapidResponse = await fetch('/api/push/vapid-public-key');
+    const { publicKey } = await vapidResponse.json();
+
     // Subscribe to push notifications
-    // Note: This is a simplified implementation
-    // In production, you'd use a VAPID key from your server
-    try {
-      // For now, we'll just note that the user has enabled notifications
-      // The server can send notifications via the API
-      const hasPermission = Notification.permission === 'granted';
-      if (hasPermission) {
-        // Store preference in localStorage
-        localStorage.setItem(`notifications_enabled_${itsId}`, 'true');
-        return true;
-      }
-    } catch (err) {
-      console.warn('Push subscription not available:', err.message);
-      // Fallback to polling for notifications (done via regular fetch)
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+
+    console.log('[Push] Subscribed to push notifications');
+
+    // Send subscription to server for storage
+    const response = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: subscription,
+        its_id: itsId
+      })
+    });
+
+    if (response.ok) {
+      console.log('[Push] Subscription saved to server');
       localStorage.setItem(`notifications_enabled_${itsId}`, 'true');
       return true;
+    } else {
+      console.warn('[Push] Failed to save subscription:', await response.text());
+      return false;
     }
   } catch (err) {
-    console.error('Error registering for push:', err);
+    console.error('[Push] Error registering for push:', err);
     return false;
   }
+}
+
+// Helper function to convert VAPID key from base64 to Uint8Array
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }
 
 async function checkAndRequestNotificationPermission(itsId) {
