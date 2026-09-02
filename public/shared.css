@@ -1008,7 +1008,31 @@ code {
 
   .container { padding: 16px 12px 48px; }
   .card { padding: 16px 12px; margin-bottom: 16px; }
-  .stat { padding: 20px 16px; min-height: auto; }
+  .stat {
+    padding: 20px 16px;
+    min-height: auto;
+  }
+
+  .stat .label {
+    font-size: 11px;
+    margin-bottom: 10px;
+    word-wrap: break-word;
+  }
+
+  .stat .value {
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+
+  .stat .change {
+    font-size: 12px;
+  }
+
+  .stat-icon {
+    font-size: 36px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
 
   /* Mobile table improvements */
   table { font-size: 13px; }
