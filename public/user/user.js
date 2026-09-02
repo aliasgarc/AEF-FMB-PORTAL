@@ -694,50 +694,7 @@ function renderResult(data) {
   if (statsRow) statsRow.style.display = 'grid';
 
   // Create progress bar for pending amounts
-  const statPendingDiv = document.querySelector('.stat:nth-child(2)');
-  if (statPendingDiv) {
-    const totalContribution = totalReceived + totalPending;
-    const percentReceived = totalContribution > 0 ? Math.round((totalReceived / totalContribution) * 100) : 0;
-
-    // Remove old progress elements
-    const oldBar = statPendingDiv.querySelector('[data-progress]');
-    if (oldBar) oldBar.remove();
-    const oldLabel = statPendingDiv.querySelector('[data-percent-label]');
-    if (oldLabel) oldLabel.remove();
-
-    // Create container for progress bar and label
-    const progressContainer = document.createElement('div');
-    progressContainer.style.marginTop = '8px';
-    progressContainer.setAttribute('data-progress', 'true');
-
-    const progressBar = document.createElement('div');
-    progressBar.style.height = '5px';
-    progressBar.style.background = 'rgba(59,130,246,0.1)';
-    progressBar.style.borderRadius = '3px';
-    progressBar.style.overflow = 'hidden';
-
-    const progressFill = document.createElement('div');
-    progressFill.style.height = '100%';
-    progressFill.style.width = percentReceived + '%';
-    progressFill.style.background = 'linear-gradient(90deg, var(--green), var(--cyan))';
-    progressFill.style.borderRadius = '3px';
-    progressFill.style.transition = 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
-
-    progressBar.appendChild(progressFill);
-    progressContainer.appendChild(progressBar);
-
-    // Add percentage label
-    const percentLabel = document.createElement('p');
-    percentLabel.style.margin = '6px 0 0 0';
-    percentLabel.style.fontSize = '11px';
-    percentLabel.style.color = '#94a3b8';
-    percentLabel.style.fontWeight = '600';
-    percentLabel.setAttribute('data-percent-label', 'true');
-    percentLabel.textContent = `${percentReceived}% collected`;
-    progressContainer.appendChild(percentLabel);
-
-    statPendingDiv.appendChild(progressContainer);
-  }
+  // Progress bar removed - Amount Received card now displays like other cards
 
   // Populate takhmeen contributions table
   const takhmeenBody = document.getElementById('takhmeenBody');
