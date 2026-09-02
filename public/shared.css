@@ -816,19 +816,11 @@ tbody tr {
 }
 
 .stat .value.outstanding {
-  font-size: 40px;
-  background: linear-gradient(135deg, #ef4444 0%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ef4444;
 }
 
 .stat .value.success {
-  font-size: 40px;
-  background: linear-gradient(135deg, #22c55e 0%, #06b6d4 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #22c55e;
 }
 
 /* Typography */
