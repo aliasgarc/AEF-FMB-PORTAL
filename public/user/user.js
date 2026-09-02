@@ -621,8 +621,8 @@ function renderResult(data) {
   // Check for app updates (initial + periodic every 5 minutes)
   checkForAppUpdate(currentItsId);
   if (window.PWAUtils) {
-    // Pass displayUpdateBanner as callback to show updates when periodic check finds them
-    PWAUtils.startPeriodicUpdateCheck(APP_VERSION, currentItsId, 'user', 300000, displayUpdateBanner);
+    // Don't show banner on periodic checks - only show modal once per session on initial load
+    PWAUtils.startPeriodicUpdateCheck(APP_VERSION, currentItsId, 'user', 300000, () => {});
     // Track installation for analytics
     PWAUtils.trackInstallation(currentItsId, APP_VERSION);
   }
