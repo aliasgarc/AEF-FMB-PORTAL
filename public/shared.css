@@ -1013,7 +1013,7 @@ code {
   }
 
   .stat .value {
-    font-size: 36px;
+    font-size: 44px;
   }
 }
 
@@ -1038,7 +1038,7 @@ code {
   }
 
   .stat .value {
-    font-size: 32px;
+    font-size: 44px;
     margin-bottom: 8px;
   }
 
@@ -1105,7 +1105,7 @@ code {
   }
 
   .stat .value {
-    font-size: 32px;
+    font-size: 44px;
   }
 
   .stat .change {
