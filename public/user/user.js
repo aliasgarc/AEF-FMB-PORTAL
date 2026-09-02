@@ -25,7 +25,12 @@ async function checkForAppUpdate(itsId) {
     const data = await res.json();
 
     if (data.hasUpdate) {
-      displayUpdateBanner(data);
+      // Only show update notification once per session
+      const updateNotificationShown = sessionStorage.getItem('updateNotificationShown');
+      if (!updateNotificationShown) {
+        sessionStorage.setItem('updateNotificationShown', 'true');
+        displayForceUpdateModal(data);
+      }
     }
 
     // Store version check timestamp
