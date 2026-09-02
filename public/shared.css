@@ -665,16 +665,16 @@ tbody tr {
 /* Stats Grid */
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
   margin-bottom: 32px;
   width: 100%;
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1200px) {
   .stats {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
   }
 }
 
@@ -705,7 +705,7 @@ tbody tr {
   background: linear-gradient(135deg, var(--card) 0%, var(--card-hover) 100%);
   border: 2px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 24px 20px;
+  padding: 20px 16px;
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-md);
@@ -713,7 +713,7 @@ tbody tr {
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  min-height: 220px;
+  min-height: 200px;
   justify-content: space-between;
 }
 
