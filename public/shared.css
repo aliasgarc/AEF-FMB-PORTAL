@@ -799,6 +799,9 @@ tbody tr {
   line-height: 1.1;
   margin-bottom: 12px;
   letter-spacing: -0.02em;
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 .stat .change {
@@ -817,10 +820,16 @@ tbody tr {
 
 .stat .value.outstanding {
   color: #ef4444;
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 .stat .value.success {
   color: #22c55e;
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 /* Typography */
