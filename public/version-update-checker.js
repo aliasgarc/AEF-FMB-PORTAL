@@ -178,13 +178,6 @@ if (!document.querySelector('style[data-version-checker]')) {
   document.head.appendChild(style);
 }
 
-// Check for updates on page load
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(checkForUpdates, 1000); // Check after 1 second
-  });
-} else {
-  setTimeout(checkForUpdates, 1000);
-}
-
-console.log('[Update Checker] Initialized');
+// Update checking is now handled by checkForAppUpdate() in user.js
+// This version-update-checker.js is kept for backward compatibility but not auto-run
+// console.log('[Update Checker] Initialized - disabled in favor of user.js update handling');
