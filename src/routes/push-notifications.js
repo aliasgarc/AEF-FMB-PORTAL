@@ -104,8 +104,9 @@ router.post('/send', async (req, res) => {
     }
 
     // Convert ITS IDs to strings to ensure consistency with database
+    let recipientIds = its_ids;
     if (recipient_type === 'specific') {
-      its_ids = its_ids.map(id => String(id).trim());
+      recipientIds = its_ids.map(id => String(id).trim());
     }
 
     if (message_type === 'custom' && !custom_message) {
@@ -123,7 +124,7 @@ router.post('/send', async (req, res) => {
       const result = await db.query('SELECT its_id FROM fmb_its_tbl WHERE its_id IS NOT NULL');
       recipients = result.rows.map(row => row.its_id);
     } else {
-      recipients = its_ids;
+      recipients = recipientIds;
     }
 
     if (recipients.length === 0) {
