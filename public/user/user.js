@@ -390,25 +390,34 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function checkAndRequestNotificationPermission(itsId) {
+  console.log('[Notifications] Current permission:', Notification.permission);
+
   if (Notification.permission === 'denied') {
-    // User has blocked notifications - show info banner
+    console.log('[Notifications] User has blocked notifications');
     displayNotificationPermissionBanner('blocked');
     return;
   }
 
   if (Notification.permission === 'granted') {
-    // Already have permission
+    console.log('[Notifications] Already have permission, registering...');
     await registerForPushNotifications(itsId);
     return;
   }
 
   // Permission is 'default' - show permission banner
+  console.log('[Notifications] Showing permission banner for user', itsId);
   displayNotificationPermissionBanner('prompt', itsId);
 }
 
 function displayNotificationPermissionBanner(status, itsId) {
   const container = document.getElementById('notificationsContainer');
-  if (!container) return;
+  console.log('[Notifications] displayNotificationPermissionBanner status:', status);
+  console.log('[Notifications] Container found:', !!container);
+
+  if (!container) {
+    console.warn('[Notifications] notificationsContainer not found!');
+    return;
+  }
 
   let banner;
 
