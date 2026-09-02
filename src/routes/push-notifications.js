@@ -162,10 +162,10 @@ router.post('/send', async (req, res) => {
       // Fetch pending amount for each user
       const placeholders = recipients.map((_, i) => `$${i + 1}`).join(',');
       const result = await db.query(
-        `SELECT pt.hof_its as its_id, COALESCE(SUM(pt.pending_amount), 0) as pending_amount
+        `SELECT pt.hof_its as its_id, COALESCE(SUM(pt.amt_pending), 0) as pending_amount
          FROM fmb_payment_tbl pt
          WHERE pt.hof_its IN (${placeholders})
-         AND pt.pending_amount > 0
+         AND pt.amt_pending > 0
          GROUP BY pt.hof_its`,
         recipients
       );
