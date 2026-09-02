@@ -375,6 +375,85 @@ async function registerForPushNotifications(itsId) {
   }
 }
 
+// Listen for push notifications from service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    console.log('[App] Message from service worker:', event.data);
+
+    if (event.data.type === 'PUSH_NOTIFICATION') {
+      const { payload } = event.data;
+      console.log('[App] Displaying push notification modal:', payload);
+      displayPushNotificationModal(payload);
+    }
+  });
+}
+
+// Display push notification as in-page modal popup
+function displayPushNotificationModal(data) {
+  const { title, message, push_notification_id, its_id } = data;
+
+  // Create modal overlay
+  const modal = document.createElement('div');
+  modal.id = `push-modal-${push_notification_id}`;
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+    animation: fadeIn 0.3s ease-out;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+      animation: slideUp 0.4s ease-out;
+    ">
+      <div style="font-size: 48px; margin-bottom: 20px;">🔔</div>
+      <h2 style="margin: 0 0 16px 0; color: #1a1a1a; font-size: 24px; font-weight: 700;">
+        ${escapeHtml(title)}
+      </h2>
+      <p style="margin: 0 0 28px 0; color: #555; font-size: 16px; line-height: 1.6;">
+        ${escapeHtml(message)}
+      </p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button onclick="document.getElementById('${modal.id}').remove()" style="
+          background: #f3f4f6;
+          color: #1a1a1a;
+          border: none;
+          padding: 12px 28px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+          OK
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Auto-close after 8 seconds
+  setTimeout(() => {
+    const elem = document.getElementById(modal.id);
+    if (elem) elem.remove();
+  }, 8000);
+}
+
 // Helper function to convert VAPID key from base64 to Uint8Array
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);

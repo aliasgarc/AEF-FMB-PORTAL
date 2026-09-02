@@ -171,7 +171,8 @@ self.addEventListener('message', (event) => {
 // ========== PUSH NOTIFICATIONS ==========
 // Handle all push notifications (admin targeted and app updates)
 self.addEventListener('push', (event) => {
-  console.log('[ServiceWorker] Push notification received');
+  console.log('[ServiceWorker] 🔔 PUSH NOTIFICATION RECEIVED!', event);
+  console.log('[ServiceWorker] Event data:', event.data);
 
   if (!event.data) {
     console.log('[ServiceWorker] No data in push event');
@@ -179,7 +180,10 @@ self.addEventListener('push', (event) => {
   }
 
   try {
+    console.log('[ServiceWorker] Attempting to parse push data...');
     const data = event.data.json();
+    console.log('[ServiceWorker] Parsed push data:', data);
+
     const {
       title = '🔔 Notification',
       message = 'You have a new message',
@@ -187,6 +191,8 @@ self.addEventListener('push', (event) => {
       its_id,
       message_type = 'custom'
     } = data;
+
+    console.log('[ServiceWorker] Notification details:', { title, message, push_notification_id, its_id });
 
     // Format notification based on message type
     let notificationTitle = title;
@@ -226,6 +232,16 @@ self.addEventListener('push', (event) => {
       to_user: its_id
     });
 
+    // Broadcast to open clients for in-page display
+    const notificationData = {
+      title: notificationTitle,
+      message: notificationBody,
+      push_notification_id,
+      its_id,
+      message_type
+    };
+    broadcastNotification(notificationData);
+
     event.waitUntil(
       self.registration.showNotification(notificationTitle, notificationOptions)
         .then(() => {
@@ -255,6 +271,18 @@ self.addEventListener('push', (event) => {
     );
   }
 });
+
+// Send push notification to all open clients
+async function broadcastNotification(data) {
+  const clients = await self.clients.matchAll({ type: 'window' });
+  clients.forEach(client => {
+    console.log('[ServiceWorker] Sending notification to client:', client.url);
+    client.postMessage({
+      type: 'PUSH_NOTIFICATION',
+      payload: data
+    });
+  });
+}
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
