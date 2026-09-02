@@ -678,6 +678,13 @@ tbody tr {
   }
 }
 
+@media (min-width: 1024px) {
+  .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+}
+
 @media (max-width: 1024px) {
   .stats {
     grid-template-columns: repeat(2, 1fr);

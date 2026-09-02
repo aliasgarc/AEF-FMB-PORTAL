@@ -126,11 +126,8 @@ function displayForceUpdateModal(updateData) {
 }
 
 function displayUpdateBanner(updateData) {
-  // For required updates, show force-update modal instead
-  if (updateData.updateRequired) {
-    displayForceUpdateModal(updateData);
-    return;
-  }
+  // Don't show banner - use modal instead (shown in checkForAppUpdate with sessionStorage)
+  return;
 
   const container = document.getElementById('notificationsContainer');
   if (!container) return;
