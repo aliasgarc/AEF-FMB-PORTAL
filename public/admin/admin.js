@@ -1365,9 +1365,12 @@ function setupPushNotifications() {
       const value = e.target.value;
       specificUsersDiv.style.display = value === 'specific' ? 'block' : 'none';
 
-      // For bulk_pending, auto-select auto_pending message type
+      // For bulk_pending, auto-select auto_pending message type and title
       if (value === 'bulk_pending') {
         document.querySelector('input[name="messageType"][value="auto_pending"]').checked = true;
+        // Auto-populate title
+        const titleField = document.getElementById('pushTitle');
+        titleField.value = '💳 Payment Reminder';
         // Update preview
         updateMessagePreview('auto_pending');
         // Show custom message only if different type is selected later
@@ -1377,15 +1380,24 @@ function setupPushNotifications() {
     });
   });
 
-  // Toggle message type UI
+  // Toggle message type UI and auto-populate title
   messageTypeRadios.forEach(radio => {
     radio.addEventListener('change', (e) => {
       const isCustom = e.target.value === 'custom';
+      const messageType = e.target.value;
       customMessageDiv.style.display = isCustom ? 'block' : 'none';
       autoMessagePreview.style.display = isCustom ? 'none' : 'block';
 
+      // Auto-populate title for auto message types
+      const titleField = document.getElementById('pushTitle');
       if (!isCustom) {
-        updateMessagePreview(e.target.value);
+        const autoTitles = {
+          'auto_takhmeen': '💰 Takhmeen Update',
+          'auto_pending': '💳 Payment Reminder',
+          'bulk_pending': '💳 Payment Reminder'
+        };
+        titleField.value = autoTitles[messageType] || 'Notification';
+        updateMessagePreview(messageType);
       }
     });
   });
