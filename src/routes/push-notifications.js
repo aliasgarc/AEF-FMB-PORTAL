@@ -5,8 +5,8 @@ const webpush = require('web-push');
 const router = express.Router();
 
 // Set VAPID details (generate with: npx web-push generate-vapid-keys)
-const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'BN0Vu3lUoTZFGCJGH2TkLz7lUd7H9mK5pJ8sQ2rV3W9D4xN6oL8sX5tY7zW9qZ0aB1cD2eF3gH4iJ5kL6mN7oP8qR9';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'your-private-key-here';
+const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'BO73qWfhrM8ccH3qw-K0caUugIW0Em2SI2PO1dkQDC4XEMQlxmLh1vyZQPAIhBSPbidLN3qduAiipVaQDj2NAZk';
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'ThmP0e8QXuStO6RhANqzgXDRXLH9Ss4oQdxit2BlCr4';
 
 // Set VAPID subject (must be a mailto or https URL)
 const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:example@example.com';
