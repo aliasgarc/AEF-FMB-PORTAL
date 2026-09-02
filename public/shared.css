@@ -807,7 +807,7 @@ tbody tr {
 .stat .change {
   font-size: 14px;
   color: var(--green);
-  margin-top: auto;
+  margin-top: 0;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
