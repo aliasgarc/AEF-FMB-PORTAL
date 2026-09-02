@@ -103,6 +103,11 @@ router.post('/send', async (req, res) => {
       return res.status(400).json({ error: 'its_ids array required for specific recipients' });
     }
 
+    // Convert ITS IDs to strings to ensure consistency with database
+    if (recipient_type === 'specific') {
+      its_ids = its_ids.map(id => String(id).trim());
+    }
+
     if (message_type === 'custom' && !custom_message) {
       return res.status(400).json({ error: 'custom_message required for custom message type' });
     }
@@ -230,10 +235,22 @@ router.post('/send', async (req, res) => {
       detail: err.detail,
       stack: err.stack.split('\n').slice(0, 3).join('\n')
     });
+
+    // Provide helpful error messages for common issues
+    let errorMsg = err.message;
+    if (err.code === '42P01') {
+      errorMsg = 'Database tables not found. Please call /api/push/init first.';
+    } else if (err.message.includes('duplicate key')) {
+      errorMsg = 'This notification may have already been sent.';
+    } else if (err.message.includes('violates')) {
+      errorMsg = `Database constraint error: ${err.detail || err.message}`;
+    }
+
     res.status(500).json({
       error: 'Failed to send push notification',
-      detail: err.message,
-      hint: 'Check server logs for details'
+      detail: errorMsg,
+      code: err.code,
+      hint: 'Check server logs for full error details'
     });
   }
 });

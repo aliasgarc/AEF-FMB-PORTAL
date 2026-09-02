@@ -1470,7 +1470,8 @@ function setupPushNotifications() {
             loadPushHistoryData();
           }
         } else {
-          showResult(`❌ ${data.error || 'Failed to send notification'}`, 'error');
+          const errorMsg = data.detail || data.error || 'Failed to send notification';
+          showResult(`❌ ${errorMsg}`, 'error');
         }
 
         submitBtn.disabled = false;
