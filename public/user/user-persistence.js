@@ -48,20 +48,27 @@ class UserPortalPersistence {
     try {
       console.log('[User] Auto-loading data for ITS ID:', storedItsId);
 
-      // Populate the form field
-      const lookupInput = document.getElementById('itsIdInput');
+      // Populate the form field with correct ID
+      const lookupInput = document.getElementById('uniqueNumber');
       if (lookupInput) {
         lookupInput.value = storedItsId;
+        console.log('[User] Populated input field with stored ITS ID');
+      } else {
+        console.warn('[User] Could not find uniqueNumber input field');
+        return false;
       }
 
-      // Simulate form submission
-      const lookupForm = document.getElementById('lookupForm');
-      if (lookupForm) {
-        // Trigger the submit event
-        const event = new Event('submit', { bubbles: true });
-        lookupForm.dispatchEvent(event);
-        return true;
-      }
+      // Wait for page to fully load, then submit form
+      setTimeout(async () => {
+        const lookupForm = document.getElementById('lookupForm');
+        if (lookupForm) {
+          console.log('[User] Auto-submitting form...');
+          // Trigger the submit event
+          const event = new Event('submit', { bubbles: true, cancelable: true });
+          lookupForm.dispatchEvent(event);
+          return true;
+        }
+      }, 1000);
     } catch (err) {
       console.error('[User] Auto-load error:', err);
       return false;
@@ -70,25 +77,33 @@ class UserPortalPersistence {
 
   static setupFormPersistence() {
     const lookupForm = document.getElementById('lookupForm');
-    if (!lookupForm) return;
+    if (!lookupForm) {
+      console.warn('[User] Could not find lookupForm');
+      return;
+    }
 
     // Intercept form submissions to save ITS ID
     lookupForm.addEventListener('submit', (e) => {
-      const lookupInput = document.getElementById('itsIdInput');
+      const lookupInput = document.getElementById('uniqueNumber');
       if (lookupInput && lookupInput.value) {
-        this.saveItsId(lookupInput.value);
+        const itsId = lookupInput.value.trim();
+        console.log('[User] Form submitted with ITS ID:', itsId);
+        this.saveItsId(itsId);
       }
     });
+
+    console.log('[User] Form persistence listener attached');
   }
 
   static setupSearchAgainButton() {
     // Handle "Search Again" button to allow changing ITS ID
     document.addEventListener('click', (e) => {
-      if (e.target.textContent?.includes('Search Again')) {
-        const lookupInput = document.getElementById('itsIdInput');
+      if (e.target.id === 'searchAgainBtn' || e.target.textContent?.includes('Search Again')) {
+        const lookupInput = document.getElementById('uniqueNumber');
         if (lookupInput) {
           lookupInput.focus();
           lookupInput.select();
+          console.log('[User] Search Again button clicked');
         }
       }
     });
