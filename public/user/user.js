@@ -4,6 +4,39 @@ const resultArea = document.getElementById('resultArea');
 const lookupError = document.getElementById('lookupError');
 let currentItsId = null;
 
+// Direct data loading (when ITS ID is stored in localStorage)
+async function loadUserDataDirectly(itsId) {
+  if (!itsId) return false;
+
+  try {
+    console.log('[User] Direct loading for ITS ID:', itsId);
+    const res = await fetchWithTimeout(`/api/user/${encodeURIComponent(itsId)}`);
+
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      data = { error: 'Invalid response from server. Please try again.' };
+    }
+
+    if (!res.ok) {
+      console.log('[User] Direct load failed, showing search form');
+      return false;
+    }
+
+    // Hide search form and show results
+    lookupCard.style.display = 'none';
+    resultArea.style.display = 'block';
+
+    // Render the results
+    renderResult(data);
+    return true;
+  } catch (err) {
+    console.error('[User] Direct load error:', err);
+    return false;
+  }
+}
+
 // App version - update when deploying new features
 const APP_VERSION = '1.2.1'; // Service worker offline response fix
 
@@ -25,11 +58,19 @@ async function checkForAppUpdate(itsId) {
     const data = await res.json();
 
     if (data.hasUpdate) {
-      // Only show update notification once per session
-      const updateNotificationShown = sessionStorage.getItem('updateNotificationShown');
-      if (!updateNotificationShown) {
-        sessionStorage.setItem('updateNotificationShown', 'true');
-        displayForceUpdateModal(data);
+      // Check if we should skip this time (user just clicked Update)
+      const skipOnce = localStorage.getItem('skipUpdateModalOnce');
+      if (skipOnce) {
+        localStorage.removeItem('skipUpdateModalOnce');
+        console.log('[Update] Skipping modal (just updated)');
+      } else {
+        // Only show update notification once per version (persists across refreshes)
+        const versionKey = `updateNotificationShown_v${data.currentVersion}`;
+        const updateNotificationShown = localStorage.getItem(versionKey);
+        if (!updateNotificationShown) {
+          localStorage.setItem(versionKey, 'true');
+          displayForceUpdateModal(data);
+        }
       }
     }
 
@@ -101,7 +142,7 @@ function displayForceUpdateModal(updateData) {
       ${featuresHTML}
 
       <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
-        <button onclick="location.reload();" style="
+        <button onclick="localStorage.setItem('skipUpdateModalOnce', 'true'); location.reload();" style="
           width: 100%;
           background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
           color: white;
@@ -338,6 +379,23 @@ async function registerForPushNotifications(itsId) {
     });
 
     console.log('[Push] Service worker registered');
+
+    // Handle service worker updates
+    if (registration.waiting) {
+      console.log('[SW] New service worker waiting, activating...');
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'waiting' && navigator.serviceWorker.controller) {
+          // New service worker is ready, prompt user to update
+          console.log('[SW] New service worker ready');
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
 
     // Get VAPID public key from server
     const vapidResponse = await fetch('/api/push/vapid-public-key');
@@ -732,11 +790,11 @@ function renderResult(data) {
   // Start periodic notification checks (every 30 seconds)
   startPeriodicNotificationCheck(currentItsId);
 
-  // Check for app updates (initial + periodic every 5 minutes)
+  // Check for app updates (run once on page load)
   checkForAppUpdate(currentItsId);
   if (window.PWAUtils) {
-    // Don't show banner on periodic checks - only show modal once per session on initial load
-    PWAUtils.startPeriodicUpdateCheck(APP_VERSION, currentItsId, 'user', 300000, () => {});
+    // Periodic checks disabled - checkForAppUpdate handles updates on load
+    // PWAUtils.startPeriodicUpdateCheck causes browser to show native notification repeatedly
     // Track installation for analytics
     PWAUtils.trackInstallation(currentItsId, APP_VERSION);
   }

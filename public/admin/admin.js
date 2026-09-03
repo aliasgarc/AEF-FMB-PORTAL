@@ -115,14 +115,8 @@ async function init() {
   // Load users and analytics in parallel instead of sequentially
   await Promise.all([loadUsers(), loadAnalytics()]);
 
-  // Start periodic update checking (every 5 minutes)
+  // Periodic update checking disabled (causes browser to show native notification repeatedly)
   if (window.PWAUtils && me && me.admin && me.admin.id) {
-    // Simple callback to log when updates are found (admin page can be extended with UI later)
-    PWAUtils.startPeriodicUpdateCheck(APP_VERSION, me.admin.id, 'admin', 300000, (updateInfo) => {
-      if (updateInfo.hasUpdate) {
-        console.log(`[Admin] Update available: ${APP_VERSION} → ${updateInfo.currentVersion}`);
-      }
-    });
     // Track installation for analytics
     PWAUtils.trackInstallation(me.admin.id, APP_VERSION);
   }

@@ -1,8 +1,8 @@
 // Admin Login Persistence for PWA
 
 class AdminLoginPersistence {
-  static readonly STORAGE_KEY = 'admin_login_session';
-  static readonly REMEMBER_KEY = 'admin_remember_me';
+  static STORAGE_KEY = 'admin_login_session';
+  static REMEMBER_KEY = 'admin_remember_me';
 
   static saveCredentials(username, password) {
     try {

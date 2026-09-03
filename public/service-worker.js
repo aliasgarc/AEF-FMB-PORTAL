@@ -36,7 +36,7 @@ self.addEventListener('install', (event) => {
       });
     })
   );
-  self.skipWaiting();
+  // Don't skip waiting - let controlled update handle activation
 });
 
 // Activate event - clean up old caches
