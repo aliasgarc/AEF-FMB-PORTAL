@@ -1,8 +1,8 @@
 // User Portal Persistence for PWA - Store ITS ID and auto-load data
 
 class UserPortalPersistence {
-  static readonly STORAGE_KEY = 'user_its_id';
-  static readonly LAST_SEARCH_KEY = 'user_last_search';
+  static STORAGE_KEY = 'user_its_id';
+  static LAST_SEARCH_KEY = 'user_last_search';
 
   static saveItsId(itsId) {
     try {
@@ -48,25 +48,26 @@ class UserPortalPersistence {
     try {
       console.log('[User] Auto-loading data for ITS ID:', storedItsId);
 
-      // Populate the form field with correct ID
-      const lookupInput = document.getElementById('uniqueNumber');
-      if (lookupInput) {
-        lookupInput.value = storedItsId;
-        console.log('[User] Populated input field with stored ITS ID');
-      } else {
-        console.warn('[User] Could not find uniqueNumber input field');
-        return false;
-      }
-
-      // Wait for page to fully load, then submit form
+      // Wait for page and loadUserDataDirectly function to be ready
       setTimeout(async () => {
-        const lookupForm = document.getElementById('lookupForm');
-        if (lookupForm) {
-          console.log('[User] Auto-submitting form...');
-          // Trigger the submit event
-          const event = new Event('submit', { bubbles: true, cancelable: true });
-          lookupForm.dispatchEvent(event);
-          return true;
+        if (typeof loadUserDataDirectly === 'function') {
+          const success = await loadUserDataDirectly(storedItsId);
+          if (success) {
+            console.log('[User] Direct data load successful');
+            return;
+          }
+        }
+
+        // Fallback: populate form and submit if direct load fails
+        const lookupInput = document.getElementById('uniqueNumber');
+        if (lookupInput) {
+          lookupInput.value = storedItsId;
+          console.log('[User] Fallback: auto-submitting form...');
+          const lookupForm = document.getElementById('lookupForm');
+          if (lookupForm) {
+            const event = new Event('submit', { bubbles: true, cancelable: true });
+            lookupForm.dispatchEvent(event);
+          }
         }
       }, 1000);
     } catch (err) {
