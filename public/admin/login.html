@@ -603,6 +603,11 @@
 
           <div id="errorMsg"></div>
 
+          <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; cursor: pointer; font-size: 14px;">
+            <input type="checkbox" id="rememberMe" name="rememberMe">
+            <span>Remember me on this device (30 days)</span>
+          </label>
+
           <button type="submit" class="login-button" id="submitBtn">
             🚀 Sign In
           </button>
@@ -615,6 +620,7 @@
     </div>
   </div>
 
+  <script src="/admin/login-persistence.js"></script>
   <script src="/admin/admin.js"></script>
   <script src="/pwa-install.js"></script>
 </body>
