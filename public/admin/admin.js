@@ -102,11 +102,11 @@ async function init() {
     window.location.href = '/admin/login.html';
   });
 
-  const combinedForm = document.getElementById('uploadCombinedForm');
-  if (combinedForm) {
-    combinedForm.addEventListener('submit', handleCombinedUpload);
-  } else {
-  }
+  // Upload form is now handled by upload-experience.js for enhanced UI
+  // const combinedForm = document.getElementById('uploadCombinedForm');
+  // if (combinedForm) {
+  //   combinedForm.addEventListener('submit', handleCombinedUpload);
+  // }
 
   document.getElementById('closeDetail').addEventListener('click', () => {
     document.getElementById('detailPanel').style.display = 'none';
