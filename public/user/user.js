@@ -945,8 +945,11 @@ function setupActionButtons(user, summary) {
     searchAgainBtn.addEventListener('click', () => {
       resultArea.style.display = 'none';
       lookupCard.style.display = 'block';
-      document.getElementById('itsIdInput').value = '';
-      document.getElementById('itsIdInput').focus();
+      const inputField = document.getElementById('uniqueNumber');
+      if (inputField) {
+        inputField.value = '';
+        inputField.focus();
+      }
       lookupCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
