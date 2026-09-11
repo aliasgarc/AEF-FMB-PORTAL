@@ -931,6 +931,79 @@ function renderResult(data) {
   resultArea.style.display = 'block';
   resultArea.style.animation = 'slideUp 0.5s ease-out';
   resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Setup action buttons
+  setupActionButtons(user, summary);
+}
+
+function setupActionButtons(user, summary) {
+  const searchAgainBtn = document.getElementById('searchAgainBtn');
+  const printBtn = document.getElementById('printProfileBtn');
+  const shareBtn = document.getElementById('shareProfileBtn');
+
+  if (searchAgainBtn) {
+    searchAgainBtn.addEventListener('click', () => {
+      resultArea.style.display = 'none';
+      lookupCard.style.display = 'block';
+      document.getElementById('itsIdInput').value = '';
+      document.getElementById('itsIdInput').focus();
+      lookupCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // Print profile
+  if (printBtn) {
+    printBtn.style.display = 'block';
+    printBtn.addEventListener('click', () => {
+      const printContent = document.getElementById('resultArea').innerHTML;
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${user.name || 'Profile'}</title>
+          <link rel="stylesheet" href="/shared.css">
+          <style>
+            body { font-family: Inter, sans-serif; padding: 20px; }
+            .stat { break-inside: avoid; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { padding: 12px; border: 1px solid #e2e8f0; text-align: left; }
+            th { background: #f8fafc; font-weight: 600; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>${escapeHtml(user.name || 'Member Profile')}</h1>
+          <p>ITS ID: ${escapeHtml(user.its_id)}</p>
+          <p>Printed on: ${new Date().toLocaleString()}</p>
+          ${printContent}
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    });
+  }
+
+  // Share profile
+  if (shareBtn && navigator.share) {
+    shareBtn.style.display = 'block';
+    shareBtn.addEventListener('click', async () => {
+      try {
+        await navigator.share({
+          title: `Profile - ${user.name}`,
+          text: `ITS ID: ${user.its_id}\nCity: ${user.city || 'N/A'}\nTotal Takhmeen: ₹${currency(summary.totalBilled || 0)}`,
+          url: window.location.href
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Share failed:', err);
+          alert('Share failed. Please try again.');
+        }
+      }
+    });
+  }
 }
 
 function getStatusIcon(status) {
