@@ -4,7 +4,7 @@ const db = require('../db');
 const config = require('../config/config');
 const { verifyAdminCredentials, issueToken, setAuthCookie, clearAuthCookie, requireAdmin } = require('../auth');
 const { parseCombinedExcel } = require('../utils/parsers');
-const { createUploadJob, getJobStatus } = require('../jobs/uploadQueue');
+const { createUploadJob, getJobStatus, processJob } = require('../jobs/uploadQueue');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.MAX_FILE_SIZE } });
@@ -332,8 +332,9 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// POST /api/admin/upload-combined — Async combined upload
-// File is queued for background processing
+// POST /api/admin/upload-combined — Process upload
+// On Vercel: synchronous (wait for completion)
+// On local: queue for background worker
 // ---------------------------------------------------------------
 router.post('/upload-combined', requireAdmin, upload.single('file'), async (req, res) => {
   console.log('📨 Upload endpoint hit');
@@ -346,39 +347,38 @@ router.post('/upload-combined', requireAdmin, upload.single('file'), async (req,
   try {
     console.log(`📦 Queuing upload: ${req.admin.username}, file size: ${req.file.size} bytes`);
 
-    // Ensure res is writable
-    if (res.headersSent) {
-      console.error('❌ Headers already sent!');
-      return;
-    }
-
     const job = await createUploadJob(req.file.buffer, req.admin.username);
-    console.log(`✅ Job ${job.id} created successfully, sending response...`);
+    console.log(`✅ Job ${job.id} created`);
 
+    // Return response immediately to unblock client
     const response = {
       ok: true,
       jobId: job.id,
       status: job.status,
-      message: 'File queued for processing. Check job status with /api/admin/upload-status/:jobId',
+      message: 'File queued for processing',
       checkStatusUrl: `/api/admin/upload-status/${job.id}`
     };
-
-    console.log(`📤 Sending response:`, JSON.stringify(response));
-    res.set('Content-Type', 'application/json');
     res.json(response);
-    console.log(`✅ Response sent successfully`);
+
+    // Start processing asynchronously WITHOUT awaiting
+    // This allows response to return immediately on all environments
+    const isVercel = process.env.VERCEL === '1';
+    if (isVercel) {
+      console.log(`⚡ Starting async processing (Vercel - fire-and-forget)`);
+    } else {
+      console.log(`⏳ Processing will be picked up by background worker`);
+    }
+
+    // Fire-and-forget: processing updates DB, client polls for progress
+    processJob(job.id).catch(err => console.error(`❌ Job ${job.id} error:`, err.message));
 
   } catch (err) {
-    console.error('❌ Upload queue error:', err.message);
-    console.error('Stack:', err.stack);
+    console.error('❌ Upload error:', err.message);
 
     if (!res.headersSent) {
       res.status(500).json({
-        error: 'Failed to queue upload: ' + err.message,
-        type: err.constructor.name
+        error: 'Upload failed: ' + err.message
       });
-    } else {
-      console.error('❌ Could not send error response - headers already sent');
     }
   }
 });
