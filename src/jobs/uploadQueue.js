@@ -103,8 +103,8 @@ async function processJob(jobId) {
           const updateTakhmeenRows = batchRows.filter(r => existingTakhmeenSet.has(r.its_id));
 
           if (newTakhmeenRows.length > 0) {
-            const values = newTakhmeenRows.map((r, i) => `($${i*4+1}, $${i*4+2}, $${i*4+3}::TEXT, $${i*4+4})`).join(',');
-            const params = newTakhmeenRows.flatMap(r => [r.its_id, r.takhmeen_year, r.takhmeen_amount, r.previous_amount]);
+            const values = newTakhmeenRows.map((r, i) => `($${i*4+1}, $${i*4+2}, $${i*4+3}, $${i*4+4})`).join(',');
+            const params = newTakhmeenRows.flatMap(r => [r.its_id, r.takhmeen_year, String(r.takhmeen_amount || ''), String(r.previous_amount || '')]);
             await client.query(
               `INSERT INTO fmb_takhmeen (hof_its, takhmeen_yr, takhmeen_amt, previous_amount_due) VALUES ${values}`,
               params
@@ -114,14 +114,14 @@ async function processJob(jobId) {
 
           if (updateTakhmeenRows.length > 0) {
             const values = updateTakhmeenRows.map((r, i) =>
-              `($${i*4+1}::TEXT, $${i*4+2}::TEXT, $${i*4+3}::NUMERIC, $${i*4+4}::NUMERIC)`
+              `($${i*4+1}::TEXT, $${i*4+2}::TEXT, $${i*4+3}::TEXT, $${i*4+4}::TEXT)`
             ).join(',');
-            const params = updateTakhmeenRows.flatMap(r => [r.its_id, r.takhmeen_year, r.takhmeen_amount, r.previous_amount]);
+            const params = updateTakhmeenRows.flatMap(r => [r.its_id, r.takhmeen_year, String(r.takhmeen_amount || ''), String(r.previous_amount || '')]);
             await client.query(
               `UPDATE fmb_takhmeen AS t SET
                 takhmeen_yr = CASE WHEN v.takhmeen_yr IS NOT NULL AND v.takhmeen_yr != '' THEN v.takhmeen_yr ELSE t.takhmeen_yr END,
-                takhmeen_amt = CASE WHEN v.takhmeen_amt IS NOT NULL THEN v.takhmeen_amt ELSE t.takhmeen_amt END,
-                previous_amount_due = CASE WHEN v.previous_amount_due IS NOT NULL THEN v.previous_amount_due ELSE t.previous_amount_due END
+                takhmeen_amt = CASE WHEN v.takhmeen_amt IS NOT NULL AND v.takhmeen_amt != '' THEN v.takhmeen_amt ELSE t.takhmeen_amt END,
+                previous_amount_due = CASE WHEN v.previous_amount_due IS NOT NULL AND v.previous_amount_due != '' THEN v.previous_amount_due ELSE t.previous_amount_due END
               FROM (VALUES ${values}) AS v(hof_its, takhmeen_yr, takhmeen_amt, previous_amount_due)
               WHERE t.hof_its = v.hof_its`,
               params
