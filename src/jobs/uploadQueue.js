@@ -114,14 +114,14 @@ async function processJob(jobId) {
 
           if (updateTakhmeenRows.length > 0) {
             const values = updateTakhmeenRows.map((r, i) =>
-              `($${i*4+1}::TEXT, $${i*4+2}::TEXT, $${i*4+3}::TEXT, $${i*4+4}::NUMERIC)`
+              `($${i*4+1}::TEXT, $${i*4+2}::TEXT, $${i*4+3}::NUMERIC, $${i*4+4}::NUMERIC)`
             ).join(',');
             const params = updateTakhmeenRows.flatMap(r => [r.its_id, r.takhmeen_year, r.takhmeen_amount, r.previous_amount]);
             await client.query(
               `UPDATE fmb_takhmeen AS t SET
-                takhmeen_yr = COALESCE(NULLIF(v.takhmeen_yr, ''), t.takhmeen_yr),
-                takhmeen_amt = COALESCE(NULLIF(v.takhmeen_amt, ''), t.takhmeen_amt),
-                previous_amount_due = COALESCE(v.previous_amount_due, t.previous_amount_due)
+                takhmeen_yr = CASE WHEN v.takhmeen_yr IS NOT NULL AND v.takhmeen_yr != '' THEN v.takhmeen_yr ELSE t.takhmeen_yr END,
+                takhmeen_amt = CASE WHEN v.takhmeen_amt IS NOT NULL THEN v.takhmeen_amt ELSE t.takhmeen_amt END,
+                previous_amount_due = CASE WHEN v.previous_amount_due IS NOT NULL THEN v.previous_amount_due ELSE t.previous_amount_due END
               FROM (VALUES ${values}) AS v(hof_its, takhmeen_yr, takhmeen_amt, previous_amount_due)
               WHERE t.hof_its = v.hof_its`,
               params
@@ -166,9 +166,9 @@ async function processJob(jobId) {
             const params = updatePaymentRows.flatMap(r => [r.its_id, r.full_name, r.paid, r.due]);
             await client.query(
               `UPDATE fmb_payment_tbl AS t SET
-                hof_name = COALESCE(NULLIF(v.hof_name, ''), t.hof_name),
-                amt_rcv = COALESCE(v.amt_rcv, t.amt_rcv),
-                amt_pending = COALESCE(v.amt_pending, t.amt_pending)
+                hof_name = CASE WHEN v.hof_name IS NOT NULL AND v.hof_name != '' THEN v.hof_name ELSE t.hof_name END,
+                amt_rcv = CASE WHEN v.amt_rcv IS NOT NULL THEN v.amt_rcv ELSE t.amt_rcv END,
+                amt_pending = CASE WHEN v.amt_pending IS NOT NULL THEN v.amt_pending ELSE t.amt_pending END
               FROM (VALUES ${values}) AS v(hof_its, hof_name, amt_rcv, amt_pending)
               WHERE t.hof_its = v.hof_its`,
               params
